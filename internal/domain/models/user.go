@@ -1,10 +1,9 @@
-// This package conatins the domain models for the chat application.
+// Package models contains the domain models for the chat application.
 package models
 
-import (
-	"time"
-)
+import "time"
 
+// User represents a user in the chat application.
 type User struct {
 	ID        string    `json:"id" validate:"uuid4"`
 	Username  string    `json:"username" validate:"required,min=3,max=50"`
@@ -14,6 +13,7 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Validate checks the User fields for validity.
 func (u *User) Validate() error {
 	return validate.Struct(u)
 }
