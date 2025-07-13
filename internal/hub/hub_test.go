@@ -10,12 +10,12 @@ import (
 func waitForClients(h *Hub, expected int, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		if len(h.clients) == expected {
+		if h.ClientsCount() == expected {
 			return nil
 		}
 		time.Sleep(time.Millisecond)
 	}
-	return fmt.Errorf("timeout waiting for %d clients; got %d", expected, len(h.clients))
+	return fmt.Errorf("timeout waiting for %d clients; got %d", expected, h.ClientsCount())
 }
 
 func TestNewHub(t *testing.T) {
@@ -113,6 +113,7 @@ func TestHubUnregisterNonExistentClient(t *testing.T) {
 
 func TestHubChannelInitialization(t *testing.T) {
 	hub := NewHub()
+	go hub.Run()
 
 	// Test that all channels are properly initialized and can be used
 	select {

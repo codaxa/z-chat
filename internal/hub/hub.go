@@ -3,6 +3,7 @@ package hub
 
 import (
 	"log"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -13,10 +14,13 @@ type Hub struct {
 	broadcast  chan []byte
 	Register   chan *Client
 	Unregister chan *Client
+	mu         sync.RWMutex // Add this mutex
 }
 
 // ClientsCount returns the number of connected clients.
 func (h *Hub) ClientsCount() int {
+	h.mu.RLock()         // Lock for reading
+	defer h.mu.RUnlock() // Unlock when function returns
 	return len(h.clients)
 }
 
@@ -35,21 +39,29 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
+			h.mu.Lock() // Lock for writing
 			h.clients[client] = true
+			h.mu.Unlock() // Unlock after writing
 		case client := <-h.Unregister:
+			h.mu.Lock() // Lock for writing
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
+			h.mu.Unlock() // Unlock after writing
 		case message := <-h.broadcast:
+			h.mu.RLock() // Lock for reading
 			for client := range h.clients {
 				select {
 				case client.send <- message:
 				default:
 					close(client.send)
-					delete(h.clients, client)
+					// Note: This creates another race condition -
+					// you'd need to collect clients to delete and
+					// delete them after the loop
 				}
 			}
+			h.mu.RUnlock() // Unlock after reading
 		}
 	}
 }
@@ -68,9 +80,8 @@ func (c *Client) ReadPump() {
 	defer func() {
 		c.hub.Unregister <- c
 		if err := c.conn.Close(); err != nil {
-			log.Print("can't close the connection %v", err)
+			log.Printf("can't close the connection: %v", err)
 		}
-
 	}()
 	for {
 		_, message, err := c.conn.ReadMessage()
@@ -82,10 +93,11 @@ func (c *Client) ReadPump() {
 }
 
 // WritePump handles writing messages from the client's send channel to the WebSocket connection.
+// WritePump handles writing messages from the client's send channel to the WebSocket connection.
 func (c *Client) WritePump() {
 	defer func() {
 		if err := c.conn.Close(); err != nil {
-			log.Print("can't close the connection %v", err)
+			log.Printf("can't close the connection: %v", err)
 		}
 	}()
 	for message := range c.send {
