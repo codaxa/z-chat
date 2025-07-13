@@ -96,6 +96,7 @@ func (c *Client) ReadPump() {
 // WritePump handles writing messages from the client's send channel to the WebSocket connection.
 func (c *Client) WritePump() {
 	defer func() {
+		c.hub.Unregister <- c
 		if err := c.conn.Close(); err != nil {
 			log.Printf("can't close the connection: %v", err)
 		}
