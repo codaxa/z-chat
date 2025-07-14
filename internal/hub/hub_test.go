@@ -119,24 +119,43 @@ func TestHubChannelInitialization(t *testing.T) {
 	hub := NewHub()
 	go hub.Run()
 
+
+	// Give the hub time to start
+	time.Sleep(10 * time.Millisecond)
+
 	// Test that all channels are properly initialized and can be used
-	select {
-	case hub.broadcast <- []byte("test"):
-	default:
-		t.Error("broadcast channel should be ready to receive")
-	}
+	// Use goroutines to avoid blocking since these are unbuffered channels
+	done := make(chan bool, 3)
 
+	// Test broadcast channel
+	go func() {
+		hub.broadcast <- []byte("test")
+		done <- true
+	}()
+
+	// Test Register channel
 	client := &Client{hub: hub, send: make(chan []byte, 1)}
-	select {
-	case hub.Register <- client:
-	default:
-		t.Error("Register channel should be ready to receive")
-	}
+	go func() {
+		hub.Register <- client
+		done <- true
+	}()
 
-	select {
-	case hub.Unregister <- client:
-	default:
-		t.Error("Unregister channel should be ready to receive")
+	// Test Unregister channel
+	go func() {
+		hub.Unregister <- client
+		done <- true
+	}()
+
+	// Wait for all operations to complete
+	timeout := time.After(100 * time.Millisecond)
+	for i := 0; i < 3; i++ {
+		select {
+		case <-done:
+			// Operation completed successfully
+		case <-timeout:
+			t.Fatalf("timeout waiting for channel operation %d to complete", i+1)
+		}
+
 	}
 }
 
