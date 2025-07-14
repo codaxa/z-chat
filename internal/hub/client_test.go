@@ -69,9 +69,11 @@ func TestClient_WritePump(t *testing.T) {
 			t.Logf("Error closing connection: %v", err)
 		}
 	}()
+
 	if err := resp.Body.Close(); err != nil {
 		t.Logf("Error closing connection: %v", err)
 	}
+
 
 	client := NewClient(h, conn)
 	go client.WritePump()
@@ -93,23 +95,29 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
+
 			CheckOrigin: func(_ *http.Request) bool { return true },
+
 		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return
 		}
+
 		if err := conn.Close(); err != nil {
 			t.Logf("Error closing connection: %v", err)
 		} // Immediately close to trigger ReadPump exit
+
 	}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http")
+
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err := resp.Body.Close(); err != nil {
 		t.Fatal(err)
 	}
+
 	if err != nil {
 		t.Fatal(err)
 	}

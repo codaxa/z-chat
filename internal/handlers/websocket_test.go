@@ -38,12 +38,14 @@ func TestWebSocketUpgrade(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WebSocket connection failed: %v", err)
 	}
+
 	if err := conn.Close(); err != nil {
 		t.Fatal(err)
 	}
 	if err := resp.Body.Close(); err != nil {
 		t.Fatal(err)
 	}
+
 
 	// Verify client is registered
 	if h.ClientsCount() != 1 {

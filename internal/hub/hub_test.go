@@ -119,6 +119,7 @@ func TestHubChannelInitialization(t *testing.T) {
 	hub := NewHub()
 	go hub.Run()
 
+
 	// Give the hub time to start
 	time.Sleep(10 * time.Millisecond)
 
@@ -154,6 +155,7 @@ func TestHubChannelInitialization(t *testing.T) {
 		case <-timeout:
 			t.Fatalf("timeout waiting for channel operation %d to complete", i+1)
 		}
+
 	}
 }
 
