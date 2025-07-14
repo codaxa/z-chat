@@ -16,6 +16,7 @@ func waitForClients(h *Hub, expected int, timeout time.Duration) error {
 		time.Sleep(time.Millisecond)
 	}
 	return fmt.Errorf("timeout waiting for %d clients; got %d", expected, h.ClientsCount())
+
 }
 
 func TestNewHub(t *testing.T) {
@@ -26,7 +27,9 @@ func TestNewHub(t *testing.T) {
 	if len(hub.clients) != 0 {
 		t.Errorf("expected empty clients map, got %d clients", len(hub.clients))
 	}
+
 	if hub.broadcast == nil || hub.Register == nil || hub.Unregister == nil {
+
 		t.Error("expected non-nil channels for broadcast, register, and unregister")
 	}
 }
@@ -45,6 +48,7 @@ func TestHubRun(t *testing.T) {
 	}
 
 	hub.Unregister <- client1
+
 	if err := waitForClients(hub, 1, 100*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
@@ -152,3 +156,4 @@ func TestHubChannelInitialization(t *testing.T) {
 		}
 	}
 }
+
