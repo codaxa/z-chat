@@ -8,7 +8,7 @@ import (
 	"z-chat/internal/config"
 	"z-chat/internal/handlers"
 	"z-chat/internal/hub"
-	"z-chat/internal/transport/http"
+	route "z-chat/internal/transport/http"
 )
 
 func main() {
@@ -19,9 +19,9 @@ func main() {
 
 	go chatHub.Run()
 	wsHandler := handlers.NewWebSocketHandler(chatHub)
-	router := route.NewRouter(chatHub, wsHandler)
+	router := route.NewRouter(wsHandler)
 
-	config := config.New()
+	cfg := config.New()
 
-	log.Fatal(http.ListenAndServe(config.Port, router))
+	log.Fatal(http.ListenAndServe(cfg.Port, router))
 }
