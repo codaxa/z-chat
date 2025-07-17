@@ -26,7 +26,7 @@ func (h *Hub) ClientsCount() int {
 
 }
 
-// NewHub creates a new Hub instance.
+// NewHub returns a new Hub instance with initialized channels and an empty set of clients.
 func NewHub() *Hub {
 	return &Hub{
 		broadcast:  make(chan models.Message),
