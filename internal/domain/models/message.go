@@ -5,9 +5,9 @@ import "time"
 
 // Message represents a message in the chat application.
 type Message struct {
-	ID        string    `json:"id" validate:"uuid4"`
-	Sender    string    `json:"sender" validate:"required,uuid4"`
-	Receiver  string    `json:"receiver" validate:"required,uuid4,nefield=Sender"`
+	ID        string    `json:"id"`
+	Sender    string    `json:"sender"`
+	Receiver  string    `json:"receiver"`
 	Content   string    `json:"content" validate:"required,min=1,max=1000"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

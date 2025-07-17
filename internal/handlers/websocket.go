@@ -27,18 +27,23 @@ var upgrader = websocket.Upgrader{
 
 // ServeWS handles WebSocket upgrade requests and manages client connections.
 func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		http.Error(w, "username is required", http.StatusBadRequest)
+		return
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			log.Printf("Error closing WebSocket connection: %v", err)
-		}
-	}()
+	// defer func() {
+	// 	if err := conn.Close(); err != nil {
+	// 		log.Printf("Error closing WebSocket connection: %v", err)
+	// 	}
+	// }()
 
-	client := hub.NewClient(h.hub, conn)
+	client := hub.NewClient(h.hub, conn, username)
 	if client == nil {
 		log.Printf("Failed to create client")
 		return
@@ -46,6 +51,6 @@ func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	h.hub.Register <- client
 
-	go client.ReadPump()
 	go client.WritePump()
+	go client.ReadPump()
 }
