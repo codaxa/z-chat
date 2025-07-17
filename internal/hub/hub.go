@@ -51,6 +51,7 @@ func (h *Hub) Run() {
 				delete(h.clients, client)
 				close(client.send)
 			}
+			h.mu.Unlock() // Unlock after writing
 		case message := <-h.broadcast:
 			// Marshal the message to JSON bytes
 			messageBytes, err := json.Marshal(message)
