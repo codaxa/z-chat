@@ -2,37 +2,26 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"z-chat/internal/config"
 	"z-chat/internal/handlers"
 	"z-chat/internal/hub"
+	"z-chat/internal/transport/http"
 )
 
 func main() {
 	// Initialize the chat server
 	fmt.Println("Starting chat server...")
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]string{"status": "healthy"}); err != nil {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-	})
 
 	chatHub := hub.NewHub()
 
 	go chatHub.Run()
 	wsHandler := handlers.NewWebSocketHandler(chatHub)
-	http.HandleFunc("/ws", wsHandler.ServeWS)
+	router := route.NewRouter(chatHub, wsHandler)
 
-	fmt.Println("Running on port 8000")
+	config := config.New()
 
-	log.Fatal(http.ListenAndServe(":8000", nil))
-
+	log.Fatal(http.ListenAndServe(config.Port, router))
 }

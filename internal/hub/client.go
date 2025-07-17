@@ -2,9 +2,8 @@
 package hub
 
 import (
-	"log"
-
 	"github.com/gorilla/websocket"
+	"log"
 )
 
 // Client represents a WebSocket client connected to the hub.

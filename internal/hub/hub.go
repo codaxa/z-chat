@@ -1,18 +1,12 @@
 // Package hub provides a client for interacting with the hub service.
 package hub
 
-
-import (
-
-	"sync"
-
-)
-
+import "sync"
 
 // Hub represents a hub for managing WebSocket connections.
 type Hub struct {
-	clients    map[*Client]bool
-	broadcast  chan []byte
+	clients   map[*Client]bool
+	broadcast chan []byte
 
 	Register   chan *Client
 	Unregister chan *Client
@@ -41,18 +35,21 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
-
 		case client := <-h.Register:
 			h.mu.Lock() // Lock for writing
 			h.clients[client] = true
 			h.mu.Unlock() // Unlock after writing
+
 		case client := <-h.Unregister:
 			h.mu.Lock() // Lock for writing
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
+			h.mu.Unlock() // Unlock after writing
+
 		case message := <-h.broadcast:
+			h.mu.RLock() // Lock for reading
 			for client := range h.clients {
 				select {
 				case client.send <- message:

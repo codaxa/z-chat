@@ -1,13 +1,12 @@
 package handlers
 
 import (
+	"github.com/gorilla/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"z-chat/internal/hub"
-
-	"github.com/gorilla/websocket"
 )
 
 func TestNewWebSocketHandler(t *testing.T) {
@@ -45,7 +44,6 @@ func TestWebSocketUpgrade(t *testing.T) {
 	if err := resp.Body.Close(); err != nil {
 		t.Fatal(err)
 	}
-
 
 	// Verify client is registered
 	if h.ClientsCount() != 1 {

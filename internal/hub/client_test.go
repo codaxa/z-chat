@@ -1,13 +1,12 @@
 package hub
 
 import (
+	"github.com/gorilla/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 func TestNewClient(t *testing.T) {
@@ -74,7 +73,6 @@ func TestClient_WritePump(t *testing.T) {
 		t.Logf("Error closing connection: %v", err)
 	}
 
-
 	client := NewClient(h, conn)
 	go client.WritePump()
 
@@ -97,7 +95,6 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 		upgrader := websocket.Upgrader{
 
 			CheckOrigin: func(_ *http.Request) bool { return true },
-
 		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {

@@ -43,13 +43,13 @@ func TestHubRun(t *testing.T) {
 
 	hub.Register <- client1
 	hub.Register <- client2
-	if err := waitForClients(hub, 2, 100*time.Millisecond); err != nil {
+	if err := waitForClients(hub, 2, 10*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
 
 	hub.Unregister <- client1
 
-	if err := waitForClients(hub, 1, 100*time.Millisecond); err != nil {
+	if err := waitForClients(hub, 1, 10*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
 
@@ -119,7 +119,6 @@ func TestHubChannelInitialization(t *testing.T) {
 	hub := NewHub()
 	go hub.Run()
 
-
 	// Give the hub time to start
 	time.Sleep(10 * time.Millisecond)
 
@@ -158,4 +157,3 @@ func TestHubChannelInitialization(t *testing.T) {
 
 	}
 }
-

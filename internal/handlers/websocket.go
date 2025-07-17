@@ -2,11 +2,10 @@
 package handlers
 
 import (
+	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"z-chat/internal/hub"
-
-	"github.com/gorilla/websocket"
 )
 
 // WebSocketHandler handles WebSocket connections for the chat application.
