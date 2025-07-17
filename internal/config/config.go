@@ -6,7 +6,7 @@ type Config struct {
 	Port string
 }
 
-// New creates a new Config instance with default values.
+// New returns a pointer to a Config initialized with the default server port ":8080".
 func New() *Config {
 	return &Config{
 		Port: ":8080",

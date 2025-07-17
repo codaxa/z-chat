@@ -9,7 +9,7 @@ import (
 	"z-chat/internal/handlers"
 )
 
-// NewRouter creates a new HTTP router with the necessary routes and middleware.
+// NewRouter initializes and returns an HTTP router with logging and recovery middleware, a health check endpoint, and a WebSocket endpoint.
 func NewRouter(wsHandler *handlers.WebSocketHandler) *chi.Mux {
 	router := chi.NewRouter()
 
