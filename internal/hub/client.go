@@ -17,7 +17,7 @@ type Client struct {
 	username string
 }
 
-// NewClient creates a new Client instance with the provided hub and WebSocket connection.
+// NewClient returns a new Client associated with the given hub, WebSocket connection, and username.
 func NewClient(hub *Hub, conn *websocket.Conn, username string) *Client {
 	return &Client{
 		hub:      hub,
