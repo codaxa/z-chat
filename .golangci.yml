@@ -22,8 +22,7 @@ linters:
     - ineffassign
     - asciicheck
     - nolintlint
-  disable:
-    - depguard
+
 
 
 issues:
