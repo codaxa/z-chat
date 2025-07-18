@@ -30,7 +30,8 @@ func TestWebSocketUpgrade(t *testing.T) {
 	defer server.Close()
 
 	// Convert http://127.0.0.1 to ws://127.0.0.1
-	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	// Add ?username=test to the URL
+	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?username=test"
 
 	// Test successful WebSocket connection
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)

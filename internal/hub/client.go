@@ -2,23 +2,27 @@
 package hub
 
 import (
+	"encoding/json"
 	"github.com/gorilla/websocket"
 	"log"
+	"z-chat/internal/domain/models"
 )
 
 // Client represents a WebSocket client connected to the hub.
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub      *Hub
+	conn     *websocket.Conn
+	send     chan []byte
+	username string
 }
 
-// NewClient creates a new Client instance with the provided hub and WebSocket connection.
-func NewClient(hub *Hub, conn *websocket.Conn) *Client {
+// NewClient returns a new Client associated with the given hub, WebSocket connection, and username.
+func NewClient(hub *Hub, conn *websocket.Conn, username string) *Client {
 	return &Client{
-		hub:  hub,
-		conn: conn,
-		send: make(chan []byte, 256),
+		hub:      hub,
+		conn:     conn,
+		send:     make(chan []byte, 256),
+		username: username,
 	}
 }
 
@@ -31,10 +35,22 @@ func (c *Client) ReadPump() {
 		}
 	}()
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, messageBytes, err := c.conn.ReadMessage()
+
 		if err != nil {
 			break
 		}
+		var message models.Message
+		if err := json.Unmarshal(messageBytes, &message); err != nil {
+			log.Printf("error parsing message: %v", err)
+			continue
+		}
+		if err := message.Validate(); err != nil {
+			log.Printf("invalid message: %v", err)
+			continue
+		}
+		// Set the sender to the current client's username before broadcasting
+		message.Sender = c.username
 		c.hub.broadcast <- message
 	}
 }

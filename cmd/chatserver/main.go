@@ -11,6 +11,7 @@ import (
 	route "z-chat/internal/transport/http"
 )
 
+// main initializes and starts the chat server, setting up HTTP endpoints and launching the chat hub.
 func main() {
 	// Initialize the chat server
 	fmt.Println("Starting chat server...")

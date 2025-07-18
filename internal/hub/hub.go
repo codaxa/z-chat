@@ -1,13 +1,17 @@
 // Package hub provides a client for interacting with the hub service.
 package hub
 
-import "sync"
+import (
+	"encoding/json"
+	"log"
+	"sync"
+	"z-chat/internal/domain/models"
+)
 
 // Hub represents a hub for managing WebSocket connections.
 type Hub struct {
-	clients   map[*Client]bool
-	broadcast chan []byte
-
+	clients    map[*Client]bool
+	broadcast  chan models.Message
 	Register   chan *Client
 	Unregister chan *Client
 	mu         sync.RWMutex // Add this mutex
@@ -21,10 +25,10 @@ func (h *Hub) ClientsCount() int {
 
 }
 
-// NewHub creates a new Hub instance.
+// NewHub returns a new Hub instance with initialized channels and an empty set of clients.
 func NewHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
+		broadcast:  make(chan models.Message),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
@@ -47,12 +51,18 @@ func (h *Hub) Run() {
 				close(client.send)
 			}
 			h.mu.Unlock() // Unlock after writing
-
 		case message := <-h.broadcast:
-			h.mu.RLock() // Lock for reading
+			// Marshal the message to JSON bytes
+			messageBytes, err := json.Marshal(message)
+			if err != nil {
+				log.Printf("error marshaling message for broadcast: %v", err)
+				continue
+			}
+
+			h.mu.RLock() // Lock for reading clients map
 			for client := range h.clients {
 				select {
-				case client.send <- message:
+				case client.send <- messageBytes: // Send JSON bytes
 				default:
 					close(client.send)
 					// Note: This creates another race condition -
