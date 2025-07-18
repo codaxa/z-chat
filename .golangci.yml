@@ -12,6 +12,7 @@ linters:
     - unused
     - gocritic
     - revive
+    - depguard
     - bodyclose
     - prealloc
     - gocognit
