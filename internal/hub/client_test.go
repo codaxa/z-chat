@@ -1,13 +1,12 @@
 package hub
 
 import (
+	"github.com/gorilla/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 func TestNewClient(t *testing.T) {

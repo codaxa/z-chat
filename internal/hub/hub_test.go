@@ -45,21 +45,25 @@ func TestHubRun(t *testing.T) {
 
 	hub.Register <- client1
 	hub.Register <- client2
-	if err := waitForClients(hub, 2, 100*time.Millisecond); err != nil {
+	if err := waitForClients(hub, 2, 50*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
 
 	hub.Unregister <- client1
 
-	if err := waitForClients(hub, 1, 100*time.Millisecond); err != nil {
+	if err := waitForClients(hub, 1, 50*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
 
 	hub.broadcast <- models.Message{Content: "test message"}
 	select {
 	case msg := <-client2.send:
-		if got := string(msg); got != `"test message"` { // Note: JSON marshaled string will have quotes
-			t.Errorf("expected '\"test message\"', got %q", got)
+		var receivedMessage models.Message
+		if err := json.Unmarshal(msg, &receivedMessage); err != nil {
+			t.Fatalf("failed to unmarshal message: %v", err)
+		}
+		if receivedMessage.Content != "test message" {
+			t.Errorf("expected content 'test message', got %q", receivedMessage.Content)
 		}
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("timeout waiting for broadcast message")
@@ -161,6 +165,5 @@ func TestHubChannelInitialization(t *testing.T) {
 		case <-timeout:
 			t.Fatalf("timeout waiting for channel operation %d to complete", i+1)
 		}
-
 	}
 }

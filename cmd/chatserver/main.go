@@ -5,23 +5,25 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"z-chat/internal/config"
 	"z-chat/internal/handlers"
 	"z-chat/internal/hub"
+	route "z-chat/internal/transport/http"
 )
 
 // main initializes and starts the chat server, setting up HTTP endpoints and launching the chat hub.
 func main() {
 	// Initialize the chat server
 	fmt.Println("Starting chat server...")
-	http.HandleFunc("/health", handlers.HealthHandler)
 
 	chatHub := hub.NewHub()
 
 	go chatHub.Run()
 	wsHandler := handlers.NewWebSocketHandler(chatHub)
-	http.HandleFunc("/ws", wsHandler.ServeWS)
+	router := route.NewRouter(wsHandler)
 
-	fmt.Println("Running on port 8000")
+	cfg := config.New()
 
-	log.Fatal(http.ListenAndServe(":8000", nil))
+	fmt.Printf("Chat server is running on port %s\n", cfg.Port)
+	log.Fatal(http.ListenAndServe(cfg.Port, router))
 }

@@ -1,13 +1,12 @@
 package handlers
 
 import (
+	"github.com/gorilla/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"z-chat/internal/hub"
-
-	"github.com/gorilla/websocket"
 )
 
 func TestNewWebSocketHandler(t *testing.T) {

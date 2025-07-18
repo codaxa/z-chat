@@ -10,9 +10,8 @@ import (
 
 // Hub represents a hub for managing WebSocket connections.
 type Hub struct {
-	clients   map[*Client]bool
-	broadcast chan models.Message
-
+	clients    map[*Client]bool
+	broadcast  chan models.Message
 	Register   chan *Client
 	Unregister chan *Client
 	mu         sync.RWMutex // Add this mutex
@@ -40,11 +39,11 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
-
 		case client := <-h.Register:
 			h.mu.Lock() // Lock for writing
 			h.clients[client] = true
 			h.mu.Unlock() // Unlock after writing
+
 		case client := <-h.Unregister:
 			h.mu.Lock() // Lock for writing
 			if _, ok := h.clients[client]; ok {
