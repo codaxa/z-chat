@@ -55,7 +55,7 @@ func TestMessageValidation(t *testing.T) {
 			Content:    "Hello, World!",
 			CreatedAt:  createdAt,
 			UpdatedAt:  updatedAt,
-			IsPositive: false,
+			IsPositive: true,
 		},
 		{
 			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
@@ -63,7 +63,7 @@ func TestMessageValidation(t *testing.T) {
 			Content:    "Hello, World!",
 			CreatedAt:  createdAt,
 			UpdatedAt:  updatedAt,
-			IsPositive: false,
+			IsPositive: true,
 		},
 		{
 			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
@@ -72,7 +72,7 @@ func TestMessageValidation(t *testing.T) {
 			Content:    "Hello, World!",
 			CreatedAt:  createdAt,
 			UpdatedAt:  updatedAt,
-			IsPositive: false,
+			IsPositive: true,
 		},
 		{
 			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
@@ -118,7 +118,7 @@ func TestMessageValidation(t *testing.T) {
 			if test.IsPositive && err != nil {
 				t.Errorf("expected no error for:\n\t\t%+v \nbut, got the following error:\n\t\t%v", test, err)
 			} else if !test.IsPositive && err == nil {
-				t.Error("expected error for invalid message, got nil")
+				t.Errorf("expected error for:\n\t\t%+v \nbut, got no error", test)
 			}
 		})
 	}

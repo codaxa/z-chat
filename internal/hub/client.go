@@ -3,6 +3,7 @@ package hub
 
 import (
 	"encoding/json"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"log"
 	"z-chat/internal/domain/models"
@@ -45,6 +46,7 @@ func (c *Client) ReadPump() {
 			log.Printf("error parsing message: %v", err)
 			continue
 		}
+		message.ID = uuid.New().String()
 		if err := message.Validate(); err != nil {
 			log.Printf("invalid message: %v", err)
 			continue

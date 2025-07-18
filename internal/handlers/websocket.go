@@ -36,11 +36,6 @@ func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			log.Printf("Error closing WebSocket connection: %v", err)
-		}
-	}()
 
 	client := hub.NewClient(h.hub, conn, username)
 	if client == nil {

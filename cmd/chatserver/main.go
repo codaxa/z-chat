@@ -24,5 +24,6 @@ func main() {
 
 	cfg := config.New()
 
+	fmt.Printf("Chat server is running on port %s\n", cfg.Port)
 	log.Fatal(http.ListenAndServe(cfg.Port, router))
 }
