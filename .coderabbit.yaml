@@ -1,7 +1,7 @@
 reviews:
   auto_review:
     enabled: true
-    default_branch_behavior: ignore
+    default_branch_behavior: normal
     base_branches:
       - dev
     review_prompt: |
