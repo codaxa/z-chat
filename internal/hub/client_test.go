@@ -14,7 +14,7 @@ func TestNewClient(t *testing.T) {
 	h := NewHub()
 	conn := &websocket.Conn{} // Mock connection
 
-	client := NewClient(h, conn)
+	client := NewClient(h, conn, "testuser")
 
 	if client == nil {
 		t.Fatal("expected Client instance, got nil")
@@ -74,8 +74,7 @@ func TestClient_WritePump(t *testing.T) {
 		t.Logf("Error closing connection: %v", err)
 	}
 
-
-	client := NewClient(h, conn)
+	client := NewClient(h, conn, "testuser")
 	go client.WritePump()
 
 	// Send a message through the client
@@ -97,7 +96,6 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 		upgrader := websocket.Upgrader{
 
 			CheckOrigin: func(_ *http.Request) bool { return true },
-
 		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -122,7 +120,7 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := NewClient(h, conn)
+	client := NewClient(h, conn, "testuser")
 	h.Register <- client
 
 	// Wait for registration
