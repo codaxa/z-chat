@@ -2,9 +2,11 @@
 package hub
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
+	"z-chat/internal/domain/models"
 )
 
 func waitForClients(h *Hub, expected int, timeout time.Duration) error {
@@ -53,11 +55,11 @@ func TestHubRun(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hub.broadcast <- []byte("test message")
+	hub.broadcast <- models.Message{Content: "test message"}
 	select {
 	case msg := <-client2.send:
-		if got := string(msg); got != "test message" {
-			t.Errorf("expected 'test message', got %q", got)
+		if got := string(msg); got != `"test message"` { // Note: JSON marshaled string will have quotes
+			t.Errorf("expected '\"test message\"', got %q", got)
 		}
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("timeout waiting for broadcast message")
@@ -81,7 +83,7 @@ func TestHubBroadcastToMultipleClients(t *testing.T) {
 	}
 
 	// Broadcast message
-	testMessage := []byte("broadcast test")
+	testMessage := models.Message{Content: "broadcast test"}
 	hub.broadcast <- testMessage
 
 	// Verify all clients receive the message
@@ -89,8 +91,13 @@ func TestHubBroadcastToMultipleClients(t *testing.T) {
 	for i, client := range clients {
 		select {
 		case msg := <-client.send:
-			if got := string(msg); got != "broadcast test" {
-				t.Errorf("client %d: expected 'broadcast test', got %q", i+1, got)
+			// Parse the JSON to verify the message content
+			var receivedMessage models.Message
+			if err := json.Unmarshal(msg, &receivedMessage); err != nil {
+				t.Fatalf("client %d: failed to unmarshal message: %v", i+1, err)
+			}
+			if receivedMessage.Content != "broadcast test" {
+				t.Errorf("client %d: expected content 'broadcast test', got %q", i+1, receivedMessage.Content)
 			}
 		case <-time.After(100 * time.Millisecond):
 			t.Fatalf("client %d: timeout waiting for broadcast message", i+1)
@@ -119,7 +126,6 @@ func TestHubChannelInitialization(t *testing.T) {
 	hub := NewHub()
 	go hub.Run()
 
-
 	// Give the hub time to start
 	time.Sleep(10 * time.Millisecond)
 
@@ -129,7 +135,7 @@ func TestHubChannelInitialization(t *testing.T) {
 
 	// Test broadcast channel
 	go func() {
-		hub.broadcast <- []byte("test")
+		hub.broadcast <- models.Message{Content: "test"}
 		done <- true
 	}()
 
@@ -158,4 +164,3 @@ func TestHubChannelInitialization(t *testing.T) {
 
 	}
 }
-
