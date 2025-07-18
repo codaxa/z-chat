@@ -23,6 +23,9 @@ linters:
     - ineffassign
     - asciicheck
     - nolintlint
+  disable:
+    - depguard
+
 
 issues:
   max-issues-per-linter: 0
