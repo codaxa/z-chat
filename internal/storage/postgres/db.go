@@ -3,8 +3,10 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"strconv"
+	"net/url"
+	"time"
 	"z-chat/internal/config"
 )
 
@@ -17,11 +19,29 @@ func NewConnection() (*pgxpool.Pool, error) {
 	dbhost := cfg.DBHost
 	dbport := cfg.DBPort
 
-	var connectionString = "postgres://" + dbuser + ":" + dbpassword + "@" + dbhost + ":" + strconv.Itoa(dbport) + "/" + dbname
+	if dbname == "" || dbuser == "" || dbpassword == "" || dbhost == "" {
+		return nil, fmt.Errorf("missing required database configuration")
+	}
 
-	conn, err := pgxpool.New(context.Background(), connectionString)
+	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
+		url.QueryEscape(dbuser),
+		url.QueryEscape(dbpassword),
+		dbhost,
+		dbport,
+		dbname)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conn, err := pgxpool.New(ctx, connectionString)
 	if err != nil {
 		return nil, err
 	}
+
+	if err := conn.Ping(ctx); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
 	return conn, nil
 }
