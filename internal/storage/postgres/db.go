@@ -4,10 +4,11 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"net/url"
 	"time"
 	"z-chat/internal/config"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // NewConnection creates a new connection pool to the PostgreSQL database using configuration settings.

@@ -1,16 +1,39 @@
 package handlers
 
 import (
-	"github.com/gorilla/websocket"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"z-chat/internal/domain/models"
 	"z-chat/internal/hub"
+
+	"github.com/gorilla/websocket"
 )
 
+// Mock message repository for testing
+type mockMessageRepository struct{}
+
+func (m *mockMessageRepository) CreateMessage(_ context.Context, _ *models.Message) error {
+	return nil
+}
+
+func (m *mockMessageRepository) GetMessageByID(_ context.Context, _ string) (*models.Message, error) {
+	return nil, nil
+}
+
+func (m *mockMessageRepository) SaveMessage(_ models.Message) error {
+	return nil
+}
+
+func (m *mockMessageRepository) GetMessages() ([]models.Message, error) {
+	return nil, nil
+}
+
 func TestNewWebSocketHandler(t *testing.T) {
-	h := hub.NewHub()
+	repo := &mockMessageRepository{}
+	h := hub.NewHub(repo)
 	handler := NewWebSocketHandler(h)
 
 	if handler == nil {
@@ -22,7 +45,8 @@ func TestNewWebSocketHandler(t *testing.T) {
 }
 
 func TestWebSocketUpgrade(t *testing.T) {
-	h := hub.NewHub()
+	repo := &mockMessageRepository{}
+	h := hub.NewHub(repo)
 	go h.Run()
 
 	handler := NewWebSocketHandler(h)
@@ -47,13 +71,14 @@ func TestWebSocketUpgrade(t *testing.T) {
 	}
 
 	// Verify client is registered
-	if h.ClientsCount() != 1 {
-		t.Errorf("expected 1 client registered, got %d", h.ClientsCount())
+	if h.ClientCount() != 1 {
+		t.Errorf("expected 1 client registered, got %d", h.ClientCount())
 	}
 }
 
 func TestWebSocketHandler_ServeWS_InvalidUpgrade(t *testing.T) {
-	h := hub.NewHub()
+	repo := &mockMessageRepository{}
+	h := hub.NewHub(repo)
 	handler := NewWebSocketHandler(h)
 
 	// Create a regular HTTP request (not WebSocket upgrade)
