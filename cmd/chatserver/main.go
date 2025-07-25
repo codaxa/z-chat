@@ -2,28 +2,61 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"z-chat/internal/config"
 	"z-chat/internal/handlers"
 	"z-chat/internal/hub"
+	"z-chat/internal/services"
+	"z-chat/internal/storage/postgres"
 	route "z-chat/internal/transport/http"
+
+	_ "github.com/lib/pq"
 )
 
 // main initializes and starts the chat server, setting up HTTP endpoints and launching the chat hub.
 func main() {
-	// Initialize the chat server
-	fmt.Println("Starting chat server...")
-
-	chatHub := hub.NewHub()
-
-	go chatHub.Run()
-	wsHandler := handlers.NewWebSocketHandler(chatHub)
-	router := route.NewRouter(wsHandler)
-
+	// Initialize configuration
 	cfg := config.New()
 
+	// Initialize database connection
+	db, err := sql.Open("postgres", cfg.DBUrl)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Use a named function for the deferred close that handles the error
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Error closing database connection: %v", err)
+		}
+	}()
+
+	// Initialize repositories
+	userRepo := postgres.NewUserRepo(db)
+
+	// Initialize services
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.TokenDuration)
+
+	// Initialize chat hub
+	chatHub := hub.NewHub()
+	go chatHub.Run()
+
+	// Initialize handlers
+	wsHandler := handlers.NewWebSocketHandler(chatHub)
+
+	// Set up router with all required dependencies
+	router := route.NewRouter(wsHandler, authService)
+
 	fmt.Printf("Chat server is running on port %s\n", cfg.Port)
-	log.Fatal(http.ListenAndServe(cfg.Port, router))
+
+	// Use a regular error check instead of log.Fatal to allow deferred functions to run
+	err = http.ListenAndServe(cfg.Port, router)
+	if err != nil {
+		log.Printf("Server error: %v", err)
+		log.Printf("HTTP server failed: %v", err)
+		// Remove os.Exit(1) to allow deferred functions to run
+	}
 }
