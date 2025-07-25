@@ -2,7 +2,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,35 +12,26 @@ import (
 	"z-chat/internal/storage/postgres"
 	route "z-chat/internal/transport/http"
 
-	_ "github.com/lib/pq"
-
-
-	"github.com/joho/godotenv"
-
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/net/context"
 )
 
 // main initializes and starts the chat server, setting up HTTP endpoints and launching the chat hub.
 func main() {
-
 	// Initialize configuration
 	cfg := config.New()
 
 	// Initialize database connection
-	db, err := sql.Open("postgres", cfg.DBUrl)
+	connConfig, err := pgxpool.ParseConfig(cfg.DBUrl)
+	if err != nil {
+		log.Fatalf("Failed to parse database configuration: %v", err)
+	}
+
+	db, err := pgxpool.NewWithConfig(context.Background(), connConfig)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-
-	// Verify database connectivity
-	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
-	}
-
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			log.Printf("Error closing database connection: %v", closeErr)
-		}
-	}()
+	defer db.Close()
 
 	// Initialize repositories
 	userRepo := postgres.NewUserRepo(db)
@@ -49,9 +39,10 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.TokenDuration)
 
-	// Initialize chat hub
-	chatHub := hub.NewHub()
+	messageRepo := postgres.NewMessageRepository(db)
 
+	// Initialize chat hub
+	chatHub := hub.NewHub(messageRepo)
 	go chatHub.Run()
 
 	// Initialize handlers
@@ -69,5 +60,4 @@ func main() {
 		log.Printf("HTTP server failed: %v", err)
 		// Remove os.Exit(1) to allow deferred functions to run
 	}
-
 }

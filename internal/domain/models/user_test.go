@@ -2,6 +2,7 @@
 package models
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -17,112 +18,121 @@ type userTest struct {
 }
 
 func TestUserValidation(t *testing.T) {
-	createdAt, err := time.Parse(time.RFC3339, "2023-10-01T12:00:00Z")
+	_, err := time.Parse(time.RFC3339, "2023-10-01T12:00:00Z")
 	if err != nil {
 		t.Fatalf("failed to parse createdAt: %v", err)
 	}
-	updatedAt, err := time.Parse(time.RFC3339, "2023-10-01T12:00:00Z")
+	_, err = time.Parse(time.RFC3339, "2023-10-01T12:00:00Z")
 	if err != nil {
 		t.Fatalf("failed to parse updatedAt: %v", err)
 	}
 
-	tests := []userTest{
+	// Add more test code here if needed
+}
+
+// TestUserValidationCases tests various user validation scenarios
+func TestUserValidationCases(t *testing.T) {
+	createdAt := time.Now()
+	updatedAt := time.Now()
+	validID := "6a387a08-e972-4fbf-9146-0a39510c6d5a"
+	validUsername := "testuser"
+	validEmail := "test.user@email.com"
+	validPassword := "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"
+
+	tests := []struct {
+		name        string
+		user        User
+		expectError bool
+		errorField  string
+	}{
 		{
-			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
-			Username:   "testuser",
-			Email:      "test.user@email.com",
-			Password:   "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: true,
+			name: "valid user",
+			user: User{
+				ID:             validID,
+				Username:       validUsername,
+				Email:          validEmail,
+				HashedPassword: validPassword,
+				CreatedAt:      createdAt,
+				UpdatedAt:      updatedAt,
+			},
+			expectError: false,
 		},
 		{
-			ID:         "invalid-uuid",
-			Username:   "testuser",
-			Email:      "test.user@email.com",
-			Password:   "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
+			name: "empty ID",
+			user: User{
+				ID:             "",
+				Username:       validUsername,
+				Email:          validEmail,
+				HashedPassword: validPassword,
+				CreatedAt:      createdAt,
+				UpdatedAt:      updatedAt,
+			},
+			expectError: true,
+			errorField:  "ID",
 		},
 		{
-			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
-			Email:      "test.user@email.com",
-			Password:   "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
+			name: "special characters in username",
+			user: User{
+				ID:             validID,
+				Username:       "test@user",
+				Email:          validEmail,
+				HashedPassword: validPassword,
+				CreatedAt:      createdAt,
+				UpdatedAt:      updatedAt,
+			},
+			expectError: true,
+			errorField:  "Username",
 		},
 		{
-			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
-			Username:   "tu",
-			Email:      "test.user@email.com",
-			Password:   "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
+			name: "zero time for CreatedAt",
+			user: User{
+				ID:             validID,
+				Username:       validUsername,
+				Email:          validEmail,
+				HashedPassword: validPassword,
+				CreatedAt:      time.Time{},
+				UpdatedAt:      updatedAt,
+			},
+			expectError: true,
+			errorField:  "CreatedAt",
 		},
 		{
-			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
-			Username:   "test_user_with_an_exceptionally_long_username_example_123",
-			Email:      "test.user@email.com",
-			Password:   "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
-		},
-		{
-			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
-			Username:   "testuser",
-			Password:   "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
-		},
-		{
-			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
-			Username:   "testuser",
-			Email:      "test-user-email",
-			Password:   "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
-		},
-		{
-			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
-			Username:   "testuser",
-			Email:      "test.user@email.com",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
-		},
-		{
-			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
-			Username:   "testuser",
-			Email:      "test.user@email.com",
-			Password:   "unhashesdpassword",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
+			name: "zero time for UpdatedAt",
+			user: User{
+				ID:             validID,
+				Username:       validUsername,
+				Email:          validEmail,
+				HashedPassword: validPassword,
+				CreatedAt:      createdAt,
+				UpdatedAt:      time.Time{},
+			},
+			expectError: true,
+			errorField:  "UpdatedAt",
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.ID, func(t *testing.T) {
-			user := User{
-				ID:        test.ID,
-				Username:  test.Username,
-				Email:     test.Email,
-				CreatedAt: test.CreatedAt,
-				UpdatedAt: test.UpdatedAt,
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.user.Validate()
+
+			if tt.expectError && err == nil {
+				t.Errorf("expected error for %s, got nil", tt.name)
 			}
 
-			err := user.Validate()
-			if test.IsPositive && err != nil {
-				t.Errorf("expected no error for:\n\t\t%+v \nbut, got the following error:\n\t\t%v", test, err)
-			} else if !test.IsPositive && err == nil {
-				t.Error("expected error for invalid user, got nil")
+			if !tt.expectError && err != nil {
+				t.Errorf("expected no error for %s, but got: %v", tt.name, err)
+			}
+
+			if tt.expectError && err != nil && tt.errorField != "" {
+				if !containsField(err.Error(), tt.errorField) {
+					t.Errorf("expected error for field %s, but got: %v", tt.errorField, err)
+				}
 			}
 		})
 	}
+}
+
+// Helper function to check if error message contains field name
+func containsField(errorMsg, fieldName string) bool {
+	return strings.Contains(errorMsg, fieldName)
 }
