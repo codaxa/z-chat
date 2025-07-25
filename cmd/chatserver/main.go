@@ -42,15 +42,14 @@ func run() error {
 
 	// Initialize hub with repository
 	chatHub := hub.NewHub(messageRepo)
-
 	go chatHub.Run()
+
+	// Initialize handlers
 	wsHandler := handlers.NewWebSocketHandler(chatHub)
 	router := route.NewRouter(wsHandler)
 
 	cfg := config.New()
-
 	fmt.Printf("Chat server is running on port %s\n", cfg.Port)
-	// Instead of log.Fatal which won't run the defer
-	// Log the error but don't exit immediately
+
 	return http.ListenAndServe(cfg.Port, router)
 }

@@ -1,7 +1,10 @@
 // Package config provides the configuration for the application.
 package config
 
-import "os"
+import (
+	"os"
+	"strconv"
+)
 
 // Config holds the configuration settings for the chat server.
 type Config struct {
@@ -19,6 +22,12 @@ func New() *Config {
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
 	dbName := os.Getenv("DB_NAME")
+	dbPortStr := os.Getenv("DB_PORT")
+
+	dbPort, err := strconv.Atoi(dbPortStr)
+	if err != nil {
+		dbPort = 5432
+	}
 
 	if dbUser == "" || dbPassword == "" || dbHost == "" || dbName == "" {
 		panic("Missing required database environment variables")
@@ -30,6 +39,6 @@ func New() *Config {
 		DBPassword: dbPassword,
 		DBHost:     dbHost,
 		DBName:     dbName,
-		DBPort:     5432,
+		DBPort:     dbPort,
 	}
 }
