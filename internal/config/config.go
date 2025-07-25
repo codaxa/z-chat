@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+
 )
 
 // Config holds the configuration settings for the chat server.
@@ -36,6 +37,12 @@ func New() *Config {
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
 	dbName := os.Getenv("DB_NAME")
+	dbPortStr := os.Getenv("DB_PORT")
+
+	dbPort, err := strconv.Atoi(dbPortStr)
+	if err != nil {
+		dbPort = 5432
+	}
 
 	// Use default values for development if environment variables are not set
 	if dbUser == "" {
@@ -79,5 +86,6 @@ func New() *Config {
 		JWTSecret:     jwtSecret,
 		TokenDuration: 24 * time.Hour,
 		DBUrl:         dbURL,
+
 	}
 }

@@ -2,6 +2,7 @@
 package hub
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"sync"
@@ -15,6 +16,25 @@ type Hub struct {
 	Register   chan *Client
 	Unregister chan *Client
 	mu         sync.RWMutex // Add this mutex
+	repo       models.MessageRepository
+}
+
+// ClientCount returns the current number of clients connected to the hub.
+// This method is safe for concurrent use as it acquires a read lock before accessing
+// the clients map.
+func (h *Hub) ClientCount() int {
+	h.mu.RLock()         // Lock for reading
+	defer h.mu.RUnlock() // Unlock when function returns
+	return len(h.clients)
+
+}
+
+// Clients provides access to the connected clients in the Hub.
+// It retrieves information about all clients currently connected to the hub.
+//
+// Note: This method is currently unimplemented.
+func (h *Hub) Clients() {
+	panic("unimplemented")
 }
 
 // ClientsCount returns the number of connected clients.
@@ -26,12 +46,13 @@ func (h *Hub) ClientsCount() int {
 }
 
 // NewHub returns a new Hub instance with initialized channels and an empty set of clients.
-func NewHub() *Hub {
+func NewHub(repo models.MessageRepository) *Hub {
 	return &Hub{
 		broadcast:  make(chan models.Message),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
+		repo:       repo, // Add this line to store the repository
 	}
 }
 
@@ -58,7 +79,9 @@ func (h *Hub) Run() {
 				log.Printf("error marshaling message for broadcast: %v", err)
 				continue
 			}
-
+			if err := h.repo.CreateMessage(context.Background(), &message); err != nil {
+				log.Printf("error saving message: %v", err)
+			}
 			h.mu.RLock() // Lock for reading clients map
 			for client := range h.clients {
 				select {

@@ -1,16 +1,40 @@
 package hub
 
 import (
-	"github.com/gorilla/websocket"
+	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+	"z-chat/internal/domain/models"
+
+	"github.com/gorilla/websocket"
 )
 
+// MockMessageRepository is a mock implementation for testing
+type mockMessageRepositoryClientTest struct{}
+
+func (m *mockMessageRepositoryClientTest) CreateMessage(_ context.Context, _ *models.Message) error {
+	return nil
+}
+
+func (m *mockMessageRepositoryClientTest) GetMessageByID(_ context.Context, _ string) (*models.Message, error) {
+	return nil, nil
+}
+
+func (m *mockMessageRepositoryClientTest) SaveMessage(_ models.Message) error {
+	return nil
+}
+
+func (m *mockMessageRepositoryClientTest) GetMessages() ([]models.Message, error) {
+	return nil, nil
+}
+
 func TestNewClient(t *testing.T) {
-	h := NewHub()
+	repo := &mockMessageRepositoryClientTest{}
+	h := NewHub(repo)
 	conn := &websocket.Conn{} // Mock connection
 
 	client := NewClient(h, conn, "testuser")
@@ -30,7 +54,8 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestClient_WritePump(t *testing.T) {
-	h := NewHub()
+	repo := &mockMessageRepositoryClientTest{}
+	h := NewHub(repo)
 	go h.Run()
 
 	// Create mock WebSocket connection
@@ -88,7 +113,8 @@ func TestClient_WritePump(t *testing.T) {
 }
 
 func TestClient_ReadPump_Unregisters(t *testing.T) {
-	h := NewHub()
+	repo := &mockMessageRepositoryClientTest{}
+	h := NewHub(repo)
 	go h.Run()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -111,13 +137,14 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 	url := "ws" + strings.TrimPrefix(server.URL, "http")
 
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
-	if err := resp.Body.Close(); err != nil {
-		t.Fatal(err)
-	}
-
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Logf("Error closing body: %v", err)
+		}
+	}()
 
 	client := NewClient(h, conn, "testuser")
 	h.Register <- client
@@ -134,4 +161,16 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 	if err := waitForClients(h, 0, 100*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// Helper function to wait for expected number of clients
+func waitForClients(h *Hub, expected int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if len(h.clients) == expected {
+			return nil
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return fmt.Errorf("timed out waiting for %d clients, got %d", expected, len(h.clients))
 }

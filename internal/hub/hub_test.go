@@ -2,42 +2,46 @@
 package hub
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 	"z-chat/internal/domain/models"
 )
 
-func waitForClients(h *Hub, expected int, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		if h.ClientsCount() == expected {
-			return nil
-		}
-		time.Sleep(time.Millisecond)
-	}
-	return fmt.Errorf("timeout waiting for %d clients; got %d", expected, h.ClientsCount())
+// MockMessageRepository is a mock implementation for testing.
+type MockMessageRepository struct{}
 
+// CreateMessage implements models.MessageRepository.
+func (m *MockMessageRepository) CreateMessage(_ context.Context, _ *models.Message) error {
+	return nil
 }
 
+// GetMessageByID implements models.MessageRepository.
+func (m *MockMessageRepository) GetMessageByID(_ context.Context, _ string) (*models.Message, error) {
+	return nil, nil
+}
+
+func (m *MockMessageRepository) SaveMessage(_ models.Message) error { return nil }
+
+// Removed duplicate waitForClients function to resolve redeclaration error.
+
 func TestNewHub(t *testing.T) {
-	hub := NewHub()
+	repo := &MockMessageRepository{} // Use the local mock implementation
+	hub := NewHub(repo)
 	if hub == nil {
 		t.Fatal("expected new Hub instance, got nil")
 	}
 	if len(hub.clients) != 0 {
 		t.Errorf("expected empty clients map, got %d clients", len(hub.clients))
 	}
-
 	if hub.broadcast == nil || hub.Register == nil || hub.Unregister == nil {
-
 		t.Error("expected non-nil channels for broadcast, register, and unregister")
 	}
 }
-
 func TestHubRun(t *testing.T) {
-	hub := NewHub()
+	repo := &MockMessageRepository{}
+	hub := NewHub(repo)
 	go hub.Run()
 
 	client1 := &Client{hub: hub, send: make(chan []byte, 1)}
@@ -71,7 +75,8 @@ func TestHubRun(t *testing.T) {
 }
 
 func TestHubBroadcastToMultipleClients(t *testing.T) {
-	hub := NewHub()
+	repo := &MockMessageRepository{}
+	hub := NewHub(repo)
 	go hub.Run()
 
 	client1 := &Client{hub: hub, send: make(chan []byte, 1)}
@@ -110,7 +115,8 @@ func TestHubBroadcastToMultipleClients(t *testing.T) {
 }
 
 func TestHubUnregisterNonExistentClient(t *testing.T) {
-	hub := NewHub()
+	repo := &MockMessageRepository{}
+	hub := NewHub(repo)
 	go hub.Run()
 
 	client := &Client{hub: hub, send: make(chan []byte, 1)}
@@ -122,12 +128,13 @@ func TestHubUnregisterNonExistentClient(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	if len(hub.clients) != 0 {
-		t.Errorf("expected 0 clients, got %d", len(hub.clients))
+		t.Errorf("expected no clients, got %d", len(hub.clients))
 	}
 }
 
 func TestHubChannelInitialization(t *testing.T) {
-	hub := NewHub()
+	repo := &MockMessageRepository{}
+	hub := NewHub(repo)
 	go hub.Run()
 
 	// Give the hub time to start
@@ -150,6 +157,11 @@ func TestHubChannelInitialization(t *testing.T) {
 		done <- true
 	}()
 
+	// Wait for client to be registered
+	if err := waitForClients(hub, 1, 50*time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+
 	// Test Unregister channel
 	go func() {
 		hub.Unregister <- client
@@ -165,5 +177,10 @@ func TestHubChannelInitialization(t *testing.T) {
 		case <-timeout:
 			t.Fatalf("timeout waiting for channel operation %d to complete", i+1)
 		}
+	}
+
+	// Verify client was unregistered
+	if err := waitForClients(hub, 0, 50*time.Millisecond); err != nil {
+		t.Fatal(err)
 	}
 }

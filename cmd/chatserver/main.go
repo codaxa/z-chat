@@ -14,10 +14,15 @@ import (
 	route "z-chat/internal/transport/http"
 
 	_ "github.com/lib/pq"
+
+
+	"github.com/joho/godotenv"
+
 )
 
 // main initializes and starts the chat server, setting up HTTP endpoints and launching the chat hub.
 func main() {
+
 	// Initialize configuration
 	cfg := config.New()
 
@@ -46,6 +51,7 @@ func main() {
 
 	// Initialize chat hub
 	chatHub := hub.NewHub()
+
 	go chatHub.Run()
 
 	// Initialize handlers
@@ -63,4 +69,5 @@ func main() {
 		log.Printf("HTTP server failed: %v", err)
 		// Remove os.Exit(1) to allow deferred functions to run
 	}
+
 }
