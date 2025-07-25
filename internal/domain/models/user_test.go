@@ -113,7 +113,6 @@ func TestUserValidation(t *testing.T) {
 				ID:        test.ID,
 				Username:  test.Username,
 				Email:     test.Email,
-				Password:  test.Password,
 				CreatedAt: test.CreatedAt,
 				UpdatedAt: test.UpdatedAt,
 			}

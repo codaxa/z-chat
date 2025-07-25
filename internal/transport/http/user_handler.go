@@ -68,6 +68,16 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.Username) < 3 || len(req.Username) > 50 {
+		http.Error(w, "Username must be between 3 and 50 characters", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Password) < 8 {
+		http.Error(w, "Password must be at least 8 characters", http.StatusBadRequest)
+		return
+	}
+
 	log.Printf("Registration request received for username: %s", req.Username)
 	err := h.authService.Register(r.Context(), req.Username, req.Password)
 	if err != nil {

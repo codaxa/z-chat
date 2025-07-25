@@ -2,6 +2,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -55,8 +57,13 @@ func New() *Config {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		jwtSecret = "default-secret-for-development-only"
-		log.Println("Warning: Using default JWT secret. Set JWT_SECRET environment variable in production.")
+		// Generate a random secret for development
+		randomBytes := make([]byte, 32)
+		if _, err := rand.Read(randomBytes); err != nil {
+			log.Fatal("Failed to generate random JWT secret")
+		}
+		jwtSecret = hex.EncodeToString(randomBytes)
+		log.Println("Warning: Generated random JWT secret for development. Set JWT_SECRET environment variable in production.")
 	}
 
 	dbURL := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",

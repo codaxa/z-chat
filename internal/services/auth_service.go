@@ -39,7 +39,7 @@ func (s *AuthService) Register(ctx context.Context, username, password string) e
 	// 1. Check if username already exists
 	existingUser, err := s.userRepo.GetByUsername(ctx, username)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check username availability: %w", err)
 	}
 	if existingUser != nil {
 		return fmt.Errorf("username already exists")
@@ -89,10 +89,13 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (str
 }
 
 func (s *AuthService) generateJWT(user *models.User) (string, error) {
+	now := time.Now()
 	claims := jwt.MapClaims{
 		"user_id":  user.ID,
 		"username": user.Username,
-		"exp":      time.Now().Add(s.tokenDuration).Unix(),
+		"exp":      now.Add(s.tokenDuration).Unix(),
+		"iat":      now.Unix(),
+		"iss":      "z-chat",
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

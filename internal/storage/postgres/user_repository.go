@@ -5,7 +5,7 @@ import (
 	"errors"
 	"z-chat/internal/domain/models"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 // UserRepo is a repository that provides user storage operations using PostgreSQL database
@@ -23,15 +23,14 @@ func NewUserRepo(db *sql.DB) *UserRepo {
 // GetByUsername retrieves a user from the database by their username
 // Returns nil, nil if the user is not found
 func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*models.User, error) {
-	query := `SELECT id, username, Hashed_password FROM users WHERE username = $1`
+	query := `SELECT id, username, hashed_password, email, created_at, updated_at FROM users WHERE username = $1`
 	row := r.db.QueryRowContext(ctx, query, username)
 	var user models.User
-	if err := row.Scan(&user.ID, &user.Username, &user.HashedPassword); err != nil {
+	if err := row.Scan(&user.ID, &user.Username, &user.HashedPassword, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
-
 	}
 	return &user, nil
 }
@@ -39,7 +38,7 @@ func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*models.
 // Add inserts a new user into the database
 // Returns an error if the operation fails
 func (r *UserRepo) Add(ctx context.Context, u models.User) error {
-	query := `INSERT INTO users (username, Hashed_password) VALUES ($1, $2)`
+	query := `INSERT INTO users (username, hashed_password) VALUES ($1, $2)`
 	_, err := r.db.ExecContext(ctx, query, u.Username, u.HashedPassword)
 	if err != nil {
 		return err

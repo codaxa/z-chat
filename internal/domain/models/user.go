@@ -9,7 +9,6 @@ type User struct {
 	Username       string    `json:"username" validate:"required,min=3,max=50"`
 	HashedPassword string    `json:"-"`
 	Email          string    `json:"email" validate:"required,email"`
-	Password       string    `json:"password" validate:"required,sha256"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
