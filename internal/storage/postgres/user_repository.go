@@ -39,7 +39,7 @@ func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*models.
 // Add inserts a new user into the database
 // Returns an error if the operation fails
 func (r *UserRepo) Add(ctx context.Context, u models.User) error {
-	query := `INSERT INTO users (username, HashedPassword) VALUES ($1, $2)`
+	query := `INSERT INTO users (username, Hashed_password) VALUES ($1, $2)`
 	_, err := r.db.ExecContext(ctx, query, u.Username, u.HashedPassword)
 	if err != nil {
 		return err
