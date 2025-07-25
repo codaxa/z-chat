@@ -23,7 +23,7 @@ func NewUserRepo(db *sql.DB) *UserRepo {
 // GetByUsername retrieves a user from the database by their username
 // Returns nil, nil if the user is not found
 func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*models.User, error) {
-	query := `SELECT id, username, hashed_password, email, created_at, updated_at FROM users WHERE username = $1`
+	query := `SELECT id, username, hashed_password FROM users WHERE username = $1`
 	row := r.db.QueryRowContext(ctx, query, username)
 	var user models.User
 	if err := row.Scan(&user.ID, &user.Username, &user.HashedPassword, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
