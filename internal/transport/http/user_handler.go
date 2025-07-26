@@ -10,7 +10,7 @@ import (
 
 // AuthServicer defines the authentication service interface
 type AuthServicer interface {
-	Register(ctx context.Context, username, password string) error
+	Register(ctx context.Context, username, email, password string) error
 	Login(ctx context.Context, username, password string) (string, error)
 }
 
@@ -51,8 +51,10 @@ type loginRequest struct {
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
+		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("ERROR parsing request body: %v", err)
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
@@ -61,10 +63,11 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Parsed registration request for user: %s", req.Username)
 
 	req.Username = strings.TrimSpace(req.Username)
+	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
 
-	if req.Username == "" || req.Password == "" {
-		http.Error(w, "Username and password are required", http.StatusBadRequest)
+	if req.Username == "" || req.Email == "" || req.Password == "" {
+		http.Error(w, "Username, email, and password are required", http.StatusBadRequest)
 		return
 	}
 
@@ -73,13 +76,21 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.Email) < 5 || len(req.Email) > 100 {
+		http.Error(w, "Email must be between 5 and 100 characters", http.StatusBadRequest)
+		return
+	}
+	if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
+		http.Error(w, "Email must be a valid email address", http.StatusBadRequest)
+		return
+	}
 	if len(req.Password) < 8 {
 		http.Error(w, "Password must be at least 8 characters", http.StatusBadRequest)
 		return
 	}
 
 	log.Printf("Registration request received for username: %s", req.Username)
-	err := h.authService.Register(r.Context(), req.Username, req.Password)
+	err := h.authService.Register(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
 		log.Printf("ERROR in registration: %v", err)
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -36,6 +37,12 @@ func New() *Config {
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
 	dbName := os.Getenv("DB_NAME")
+	dbPortStr := os.Getenv("DB_PORT")
+	dbPort, err := strconv.Atoi(dbPortStr)
+	if err != nil {
+		log.Printf("Warning: Invalid DB_PORT value, using default 5432: %v", err)
+		dbPort = 5432 // Default PostgreSQL port
+	}
 
 	// Use default values for development if environment variables are not set
 	if dbUser == "" {
@@ -67,7 +74,7 @@ func New() *Config {
 	}
 
 	dbURL := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, 5432, dbUser, dbPassword, dbName)
+		dbHost, dbPort, dbUser, dbPassword, dbName)
 
 	return &Config{
 		Port:          ":8080",
@@ -75,7 +82,7 @@ func New() *Config {
 		DBPassword:    dbPassword,
 		DBHost:        dbHost,
 		DBName:        dbName,
-		DBPort:        5432,
+		DBPort:        dbPort,
 		JWTSecret:     jwtSecret,
 		TokenDuration: 24 * time.Hour,
 		DBUrl:         dbURL,

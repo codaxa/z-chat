@@ -1,10 +1,7 @@
 // Package models contains the domain models for the chat application.
 package models
 
-import (
-	"context"
-	"time"
-)
+import "time"
 
 // Message represents a message in the chat application.
 type Message struct {
@@ -19,12 +16,6 @@ type Message struct {
 // TableName returns the table name for the Message model
 func (Message) TableName() string {
 	return "messages"
-}
-
-// MessageRepository defines the interface for message-related operations.
-type MessageRepository interface {
-	CreateMessage(ctx context.Context, msg *Message) error
-	GetMessageByID(ctx context.Context, id string) (*Message, error)
 }
 
 // Validate checks the Message fields for validity.

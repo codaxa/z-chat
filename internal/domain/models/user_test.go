@@ -7,33 +7,17 @@ import (
 	"time"
 )
 
-type userTest struct {
-	ID         string
-	Username   string
-	Email      string
-	Password   string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	IsPositive bool
-}
-
+// TestUserValidation tests various user validation scenarios
 func TestUserValidation(t *testing.T) {
-	_, err := time.Parse(time.RFC3339, "2023-10-01T12:00:00Z")
+	createdAt, err := time.Parse(time.RFC3339, "2023-10-01T12:00:00Z")
 	if err != nil {
 		t.Fatalf("failed to parse createdAt: %v", err)
 	}
-	_, err = time.Parse(time.RFC3339, "2023-10-01T12:00:00Z")
+	updatedAt, err := time.Parse(time.RFC3339, "2023-10-01T12:00:00Z")
 	if err != nil {
 		t.Fatalf("failed to parse updatedAt: %v", err)
 	}
 
-	// Add more test code here if needed
-}
-
-// TestUserValidationCases tests various user validation scenarios
-func TestUserValidationCases(t *testing.T) {
-	createdAt := time.Now()
-	updatedAt := time.Now()
 	validID := "6a387a08-e972-4fbf-9146-0a39510c6d5a"
 	validUsername := "testuser"
 	validEmail := "test.user@email.com"
@@ -48,24 +32,24 @@ func TestUserValidationCases(t *testing.T) {
 		{
 			name: "valid user",
 			user: User{
-				ID:             validID,
-				Username:       validUsername,
-				Email:          validEmail,
-				HashedPassword: validPassword,
-				CreatedAt:      createdAt,
-				UpdatedAt:      updatedAt,
+				ID:        validID,
+				Username:  validUsername,
+				Email:     validEmail,
+				Password:  validPassword,
+				CreatedAt: createdAt,
+				UpdatedAt: updatedAt,
 			},
 			expectError: false,
 		},
 		{
 			name: "empty ID",
 			user: User{
-				ID:             "",
-				Username:       validUsername,
-				Email:          validEmail,
-				HashedPassword: validPassword,
-				CreatedAt:      createdAt,
-				UpdatedAt:      updatedAt,
+				ID:        "",
+				Username:  validUsername,
+				Email:     validEmail,
+				Password:  validPassword,
+				CreatedAt: createdAt,
+				UpdatedAt: updatedAt,
 			},
 			expectError: true,
 			errorField:  "ID",
@@ -73,12 +57,12 @@ func TestUserValidationCases(t *testing.T) {
 		{
 			name: "special characters in username",
 			user: User{
-				ID:             validID,
-				Username:       "test@user",
-				Email:          validEmail,
-				HashedPassword: validPassword,
-				CreatedAt:      createdAt,
-				UpdatedAt:      updatedAt,
+				ID:        validID,
+				Username:  "test@user",
+				Email:     validEmail,
+				Password:  validPassword,
+				CreatedAt: createdAt,
+				UpdatedAt: updatedAt,
 			},
 			expectError: true,
 			errorField:  "Username",
@@ -86,12 +70,12 @@ func TestUserValidationCases(t *testing.T) {
 		{
 			name: "zero time for CreatedAt",
 			user: User{
-				ID:             validID,
-				Username:       validUsername,
-				Email:          validEmail,
-				HashedPassword: validPassword,
-				CreatedAt:      time.Time{},
-				UpdatedAt:      updatedAt,
+				ID:        validID,
+				Username:  validUsername,
+				Email:     validEmail,
+				Password:  validPassword,
+				CreatedAt: time.Time{},
+				UpdatedAt: updatedAt,
 			},
 			expectError: true,
 			errorField:  "CreatedAt",
@@ -99,12 +83,12 @@ func TestUserValidationCases(t *testing.T) {
 		{
 			name: "zero time for UpdatedAt",
 			user: User{
-				ID:             validID,
-				Username:       validUsername,
-				Email:          validEmail,
-				HashedPassword: validPassword,
-				CreatedAt:      createdAt,
-				UpdatedAt:      time.Time{},
+				ID:        validID,
+				Username:  validUsername,
+				Email:     validEmail,
+				Password:  validPassword,
+				CreatedAt: createdAt,
+				UpdatedAt: time.Time{},
 			},
 			expectError: true,
 			errorField:  "UpdatedAt",

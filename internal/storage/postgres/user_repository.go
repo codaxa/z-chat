@@ -10,25 +10,24 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// UserRepo is a repository that provides user storage operations using PostgreSQL database
-type UserRepo struct {
+// UserRepository is a repository that provides user storage operations using PostgreSQL database
+type UserRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewUserRepo creates and returns a new UserRepo instance with the provided database connection
-func NewUserRepo(db *pgxpool.Pool) *UserRepo {
-	return &UserRepo{
+// NewUserRepository creates and returns a new UserRepo instance with the provided database connection
+func NewUserRepository(db *pgxpool.Pool) *UserRepository {
+	return &UserRepository{
 		db: db,
 	}
 }
 
-// GetByUsername retrieves a user from the database by their username
-// Returns nil, nil if the user is not found
-func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*models.User, error) {
-	query := `SELECT id, username, hashed_password FROM users WHERE username = $1`
+// GetUserByUsername retrieves a user from the database by their username
+func (r *UserRepository) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	query := `SELECT id, username, password FROM users WHERE username = $1`
 	row := r.db.QueryRow(ctx, query, username)
 	var user models.User
-	if err := row.Scan(&user.ID, &user.Username, &user.HashedPassword); err != nil {
+	if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -37,11 +36,24 @@ func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*models.
 	return &user, nil
 }
 
-// Add inserts a new user into the database
-// Returns an error if the operation fails
-func (r *UserRepo) Add(ctx context.Context, u models.User) error {
-	query := `INSERT INTO users (username, hashed_password) VALUES ($1, $2)`
-	_, err := r.db.Exec(ctx, query, u.Username, u.HashedPassword)
+// GetUserByEmail retrieves a user from the database by their email
+func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	query := `SELECT id, username, email, password FROM users WHERE email = $1`
+	row := r.db.QueryRow(ctx, query, email)
+	var user models.User
+	if err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+// CreateUser inserts a new user into the database
+func (r *UserRepository) CreateUser(ctx context.Context, u models.User) error {
+	query := `INSERT INTO users (username, email, password) VALUES ($1, $2, $3)`
+	_, err := r.db.Exec(ctx, query, u.Username, u.Email, u.Password)
 	if err != nil {
 		return err
 	}
