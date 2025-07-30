@@ -9,8 +9,8 @@ type User struct {
 	Username  string    `json:"username" gorm:"type:varchar(50);uniqueIndex;not null" validate:"required,min=3,max=50,alphanum"`
 	Email     string    `json:"email" gorm:"type:varchar(255);uniqueIndex;not null" validate:"required,email"`
 	Password  string    `json:"password" gorm:"type:varchar(64);not null" validate:"required,sha256"`
-	CreatedAt time.Time `json:"created_at" gorm:"not null;autoCreateTime" validate:"required"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"not null;autoUpdateTime" validate:"required"`
+	CreatedAt time.Time `json:"created_at" gorm:"default:now();autoCreateTime" validate:"required"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"default:now();autoUpdateTime" validate:"required"`
 }
 
 // TableName returns the table name for the User model

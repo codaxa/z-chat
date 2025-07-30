@@ -52,6 +52,7 @@ tasks:
   migrate-new:
     desc: "Generate migration from GORM models"
     cmds:
+      - task: gorm-schema
       - atlas migrate diff add_changes --env development 
 
   setup:
