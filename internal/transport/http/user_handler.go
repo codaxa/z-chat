@@ -36,8 +36,8 @@ type tokenResponse struct {
 // Structs for input
 
 type loginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Identifier string `json:"identifier"`
+	Password   string `json:"password"`
 }
 
 // Register handles HTTP requests for user registration.
@@ -111,7 +111,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.authService.Login(r.Context(), req.Username, req.Password)
+	token, err := h.authService.Login(r.Context(), req.Identifier, req.Password)
 	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
