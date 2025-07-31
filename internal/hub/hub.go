@@ -7,6 +7,7 @@ import (
 	"log"
 	"sync"
 	"z-chat/internal/domain/models"
+	"z-chat/internal/domain/repository"
 )
 
 // Hub represents a hub for managing WebSocket connections.
@@ -16,7 +17,7 @@ type Hub struct {
 	Register   chan *Client
 	Unregister chan *Client
 	mu         sync.RWMutex // Add this mutex
-	repo       models.MessageRepository
+	repo       repository.MessageRepository
 }
 
 // ClientCount returns the current number of clients connected to the hub.
@@ -46,7 +47,7 @@ func (h *Hub) ClientsCount() int {
 }
 
 // NewHub returns a new Hub instance with initialized channels and an empty set of clients.
-func NewHub(repo models.MessageRepository) *Hub {
+func NewHub(repo repository.MessageRepository) *Hub {
 	return &Hub{
 		broadcast:  make(chan models.Message),
 		Register:   make(chan *Client),
