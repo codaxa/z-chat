@@ -11,9 +11,13 @@ import (
 // Authenticate checks the request for a valid JWT token and extracts user claims.
 func Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			return
+		}
 		authService := &services.AuthService{}
-		claims, err := authService.ValidateToken(token)
+		claims, err := authService.ValidateToken(authHeader)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
