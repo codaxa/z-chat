@@ -24,10 +24,8 @@ func (m *MockMessageRepository) GetMessageByID(_ context.Context, _ string) (*mo
 
 func (m *MockMessageRepository) SaveMessage(_ models.Message) error { return nil }
 
-// Removed duplicate waitForClients function to resolve redeclaration error.
-
 func TestNewHub(t *testing.T) {
-	repo := &MockMessageRepository{} // Use the local mock implementation
+	repo := &MockMessageRepository{}
 	hub := NewHub(repo)
 	if hub == nil {
 		t.Fatal("expected new Hub instance, got nil")
@@ -83,7 +81,6 @@ func TestHubBroadcastToMultipleClients(t *testing.T) {
 	client2 := &Client{hub: hub, send: make(chan []byte, 1)}
 	client3 := &Client{hub: hub, send: make(chan []byte, 1)}
 
-	// Register all clients
 	hub.Register <- client1
 	hub.Register <- client2
 	hub.Register <- client3
@@ -91,16 +88,13 @@ func TestHubBroadcastToMultipleClients(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Broadcast message
 	testMessage := models.Message{Content: "broadcast test"}
 	hub.broadcast <- testMessage
 
-	// Verify all clients receive the message
 	clients := []*Client{client1, client2, client3}
 	for i, client := range clients {
 		select {
 		case msg := <-client.send:
-			// Parse the JSON to verify the message content
 			var receivedMessage models.Message
 			if err := json.Unmarshal(msg, &receivedMessage); err != nil {
 				t.Fatalf("client %d: failed to unmarshal message: %v", i+1, err)
@@ -121,10 +115,8 @@ func TestHubUnregisterNonExistentClient(t *testing.T) {
 
 	client := &Client{hub: hub, send: make(chan []byte, 1)}
 
-	// Try to unregister a client that was never registered
 	hub.Unregister <- client
 
-	// Should not cause any issues
 	time.Sleep(10 * time.Millisecond)
 
 	if len(hub.clients) != 0 {
@@ -137,49 +129,39 @@ func TestHubChannelInitialization(t *testing.T) {
 	hub := NewHub(repo)
 	go hub.Run()
 
-	// Give the hub time to start
 	time.Sleep(10 * time.Millisecond)
 
-	// Test that all channels are properly initialized and can be used
-	// Use goroutines to avoid blocking since these are unbuffered channels
 	done := make(chan bool, 3)
 
-	// Test broadcast channel
 	go func() {
 		hub.broadcast <- models.Message{Content: "test"}
 		done <- true
 	}()
 
-	// Test Register channel
 	client := &Client{hub: hub, send: make(chan []byte, 1)}
 	go func() {
 		hub.Register <- client
 		done <- true
 	}()
 
-	// Wait for client to be registered
 	if err := waitForClients(hub, 1, 50*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
 
-	// Test Unregister channel
 	go func() {
 		hub.Unregister <- client
 		done <- true
 	}()
 
-	// Wait for all operations to complete
 	timeout := time.After(100 * time.Millisecond)
 	for i := 0; i < 3; i++ {
 		select {
 		case <-done:
-			// Operation completed successfully
 		case <-timeout:
 			t.Fatalf("timeout waiting for channel operation %d to complete", i+1)
 		}
 	}
 
-	// Verify client was unregistered
 	if err := waitForClients(hub, 0, 50*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}

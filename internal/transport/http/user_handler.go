@@ -15,16 +15,11 @@ type AuthServicer interface {
 }
 
 // UserHandler handles HTTP requests related to user operations.
-// It processes user-related endpoints and interacts with the authentication
-// service to perform operations such as user registration, login, and
-// profile management.
 type UserHandler struct {
 	authService AuthServicer
 }
 
-// NewUserHandler creates and returns a new UserHandler instance with the provided
-// authentication service. It's responsible for handling HTTP requests related to user
-// operations such as authentication, registration, and user management.
+// NewUserHandler creates and returns a new UserHandler instance.
 func NewUserHandler(authService AuthServicer) *UserHandler {
 	return &UserHandler{authService: authService}
 }
@@ -33,21 +28,12 @@ type tokenResponse struct {
 	Token string `json:"token"`
 }
 
-// Structs for input
-
 type loginRequest struct {
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
 }
 
 // Register handles HTTP requests for user registration.
-// It accepts a JSON payload containing username and password,
-// validates that both fields are not empty, and attempts to register
-// the user via the authentication service.
-//
-// On success, it returns HTTP 201 Created.
-// On error, it returns either HTTP 400 Bad Request for invalid input
-// or HTTP 500 Internal Server Error for service failures.
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
@@ -60,7 +46,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
 		return
 	}
-	log.Printf("Parsed registration request for user: %s", req.Username)
 
 	req.Username = strings.TrimSpace(req.Username)
 	req.Email = strings.TrimSpace(req.Email)
@@ -100,10 +85,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// Login handles user authentication requests. It accepts a JSON payload with
-// username and password credentials, validates them through the auth service,
-// and returns a JWT token upon successful authentication. Returns 400 for invalid
-// request format, 401 for invalid credentials, and 500 for internal errors.
+// Login handles user authentication requests.
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

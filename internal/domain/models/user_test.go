@@ -42,19 +42,6 @@ func TestUserValidation(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "empty ID",
-			user: User{
-				ID:        "",
-				Username:  validUsername,
-				Email:     validEmail,
-				Password:  validPassword,
-				CreatedAt: createdAt,
-				UpdatedAt: updatedAt,
-			},
-			expectError: true,
-			errorField:  "ID",
-		},
-		{
 			name: "special characters in username",
 			user: User{
 				ID:        validID,

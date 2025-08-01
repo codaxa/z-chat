@@ -191,3 +191,13 @@ tasks:
     desc: "Decrypt .env files"
     cmds:
       - bash ./scripts/decrypt.sh
+  
+  default:
+    desc: "Show available tasks"
+    cmds:
+      - task --list
+  
+  dev-air:
+    desc: "Start development server with file watching"
+    cmds:
+      - air

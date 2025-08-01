@@ -6,7 +6,6 @@ import (
 )
 
 // HealthHandler responds to GET requests on the /health endpoint with a JSON status message.
-// It returns a 405 error for non-GET methods and a 500 error if the response cannot be encoded.
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

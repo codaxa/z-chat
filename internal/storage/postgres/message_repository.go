@@ -2,10 +2,9 @@ package postgres
 
 import (
 	"context"
-	"z-chat/internal/domain/models"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"z-chat/internal/domain/models"
 )
 
 // MessageRepository provides methods to interact with the messages table in the database.

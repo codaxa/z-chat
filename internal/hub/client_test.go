@@ -3,14 +3,13 @@ package hub
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 	"z-chat/internal/domain/models"
-
-	"github.com/gorilla/websocket"
 )
 
 // MockMessageRepository is a mock implementation for testing
@@ -58,7 +57,6 @@ func TestClient_WritePump(t *testing.T) {
 	h := NewHub(repo)
 	go h.Run()
 
-	// Create mock WebSocket connection
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
 			CheckOrigin: func(_ *http.Request) bool { return true },
@@ -73,7 +71,6 @@ func TestClient_WritePump(t *testing.T) {
 			}
 		}()
 
-		// Keep connection alive
 		for {
 			_, _, err := conn.ReadMessage()
 			if err != nil {
@@ -101,14 +98,11 @@ func TestClient_WritePump(t *testing.T) {
 	client := NewClient(h, conn, "testuser")
 	go client.WritePump()
 
-	// Send a message through the client
 	testMessage := []byte("test message")
 	client.send <- testMessage
 
-	// Verify message was sent (WritePump should handle it)
 	time.Sleep(10 * time.Millisecond)
 
-	// Close send channel to stop WritePump
 	close(client.send)
 }
 
@@ -129,7 +123,7 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 
 		if err := conn.Close(); err != nil {
 			t.Logf("Error closing connection: %v", err)
-		} // Immediately close to trigger ReadPump exit
+		}
 
 	}))
 	defer server.Close()
@@ -149,15 +143,12 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 	client := NewClient(h, conn, "testuser")
 	h.Register <- client
 
-	// Wait for registration
 	if err := waitForClients(h, 1, 100*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
 
-	// ReadPump should unregister client when connection closes
 	go client.ReadPump()
 
-	// Wait for unregistration
 	if err := waitForClients(h, 0, 100*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}

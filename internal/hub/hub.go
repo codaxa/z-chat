@@ -16,34 +16,20 @@ type Hub struct {
 	broadcast  chan models.Message
 	Register   chan *Client
 	Unregister chan *Client
-	mu         sync.RWMutex // Add this mutex
+	mu         sync.RWMutex
 	repo       repository.MessageRepository
 }
 
-// ClientCount returns the current number of clients connected to the hub.
-// This method is safe for concurrent use as it acquires a read lock before accessing
-// the clients map.
+// ClientCount returns the current number of clients connected to the hub.p.
 func (h *Hub) ClientCount() int {
-	h.mu.RLock()         // Lock for reading
-	defer h.mu.RUnlock() // Unlock when function returns
+	h.mu.RLock()
+	defer h.mu.RUnlock()
 	return len(h.clients)
-
 }
 
 // Clients provides access to the connected clients in the Hub.
-// It retrieves information about all clients currently connected to the hub.
-//
-// Note: This method is currently unimplemented.
 func (h *Hub) Clients() {
 	panic("unimplemented")
-}
-
-// ClientsCount returns the number of connected clients.
-func (h *Hub) ClientsCount() int {
-	h.mu.RLock()         // Lock for reading
-	defer h.mu.RUnlock() // Unlock when function returns
-	return len(h.clients)
-
 }
 
 // NewHub returns a new Hub instance with initialized channels and an empty set of clients.
@@ -53,7 +39,7 @@ func NewHub(repo repository.MessageRepository) *Hub {
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
-		repo:       repo, // Add this line to store the repository
+		repo:       repo,
 	}
 }
 
@@ -62,19 +48,18 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
-			h.mu.Lock() // Lock for writing
+			h.mu.Lock()
 			h.clients[client] = true
-			h.mu.Unlock() // Unlock after writing
+			h.mu.Unlock()
 
 		case client := <-h.Unregister:
-			h.mu.Lock() // Lock for writing
+			h.mu.Lock()
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
-			h.mu.Unlock() // Unlock after writing
+			h.mu.Unlock()
 		case message := <-h.broadcast:
-			// Marshal the message to JSON bytes
 			messageBytes, err := json.Marshal(message)
 			if err != nil {
 				log.Printf("error marshaling message for broadcast: %v", err)
@@ -83,18 +68,27 @@ func (h *Hub) Run() {
 			if err := h.repo.CreateMessage(context.Background(), &message); err != nil {
 				log.Printf("error saving message: %v", err)
 			}
-			h.mu.RLock() // Lock for reading clients map
+			h.mu.RLock()
+			var failedClients []*Client
 			for client := range h.clients {
 				select {
-				case client.send <- messageBytes: // Send JSON bytes
+				case client.send <- messageBytes:
 				default:
-					close(client.send)
-					// Note: This creates another race condition -
-					// you'd need to collect clients to delete and
-					// delete them after the loop
+					failedClients = append(failedClients, client)
 				}
 			}
-			h.mu.RUnlock() // Unlock after reading
+			h.mu.RUnlock()
+
+			if len(failedClients) > 0 {
+				h.mu.Lock()
+				for _, client := range failedClients {
+					if _, ok := h.clients[client]; ok {
+						delete(h.clients, client)
+						close(client.send)
+					}
+				}
+				h.mu.Unlock()
+			}
 		}
 	}
 }

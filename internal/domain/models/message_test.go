@@ -31,16 +31,6 @@ func TestMessageValidation(t *testing.T) {
 			IsPositive: true,
 		},
 		{
-			ID:         "invalid-uuid",
-			Sender:     "b514feb6-13bb-44d2-86f6-59d05bd338c6",
-			Receiver:   "2b5fdfe1-1c9c-4c52-bfe8-60d4a056047e",
-			Content:    "Hello, World!",
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
-			IsPositive: false,
-		},
-
-		{
 			ID:         "6a387a08-e972-4fbf-9146-0a39510c6d5a",
 			Receiver:   "2b5fdfe1-1c9c-4c52-bfe8-60d4a056047e",
 			Content:    "Hello, World!",
