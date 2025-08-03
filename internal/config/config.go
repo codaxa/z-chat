@@ -28,7 +28,6 @@ type Config struct {
 
 // New creates a new Config instance with default values.
 func New() *Config {
-	// Load .env file
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: Error loading .env file: %v", err)
 	}
@@ -44,7 +43,6 @@ func New() *Config {
 		dbPort = 5432 // Default PostgreSQL port
 	}
 
-	// Use default values for development if environment variables are not set
 	if dbUser == "" {
 		dbUser = "postgres"
 		log.Println("Warning: Using default database user. Set DB_USER environment variable in production.")
@@ -64,7 +62,6 @@ func New() *Config {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		// Generate a random secret for development
 		randomBytes := make([]byte, 32)
 		if _, err := rand.Read(randomBytes); err != nil {
 			log.Fatal("Failed to generate random JWT secret")

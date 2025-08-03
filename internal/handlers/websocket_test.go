@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	appContext "z-chat/internal/context"
 	"z-chat/internal/domain/models"
 	"z-chat/internal/hub"
 )
@@ -43,31 +44,35 @@ func TestNewWebSocketHandler(t *testing.T) {
 		t.Error("expected handler to have correct hub reference")
 	}
 }
+
 func TestWebSocketUpgrade(t *testing.T) {
 	repo := &mockMessageRepository{}
 	h := hub.NewHub(repo)
 	go h.Run()
 
 	handler := NewWebSocketHandler(h)
-	server := httptest.NewServer(http.HandlerFunc(handler.ServeWS))
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims := map[string]interface{}{
+			"username": "testuser",
+		}
+		ctx := context.WithValue(r.Context(), appContext.UserClaimsKey, claims)
+		r = r.WithContext(ctx)
+
+		handler.ServeWS(w, r)
+	}))
 	defer server.Close()
 
-	// Convert http://127.0.0.1 to ws://127.0.0.1
-	// Add ?username=test to the URL
-	url := "ws" + strings.TrimPrefix(server.URL, "http") + "?username=test"
-
-	// Test successful WebSocket connection
+	url := "ws" + strings.TrimPrefix(server.URL, "http")
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		t.Fatalf("WebSocket connection failed: %v", err)
 	}
 
-	// Verify the connection is successful by checking response status
 	if resp.StatusCode != http.StatusSwitchingProtocols {
 		t.Errorf("expected status %d, got %d", http.StatusSwitchingProtocols, resp.StatusCode)
 	}
 
-	// Clean up
 	if err := conn.Close(); err != nil {
 		t.Logf("Error closing connection: %v", err)
 	}
@@ -75,7 +80,6 @@ func TestWebSocketUpgrade(t *testing.T) {
 		t.Logf("Error closing response body: %v", err)
 	}
 
-	// Give time for cleanup to complete
 	time.Sleep(10 * time.Millisecond)
 }
 
@@ -84,14 +88,111 @@ func TestWebSocketHandler_ServeWS_InvalidUpgrade(t *testing.T) {
 	h := hub.NewHub(repo)
 	handler := NewWebSocketHandler(h)
 
-	// Create a regular HTTP request (not WebSocket upgrade)
 	req := httptest.NewRequest("GET", "/ws", nil)
+
+	claims := map[string]interface{}{
+		"username": "testuser",
+	}
+	ctx := context.WithValue(req.Context(), appContext.UserClaimsKey, claims)
+	req = req.WithContext(ctx)
+
 	w := httptest.NewRecorder()
 
 	handler.ServeWS(w, req)
 
-	// Should return bad request since it's not a valid WebSocket upgrade
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+func TestWebSocketHandler_ServeWS_MissingUsername(t *testing.T) {
+	repo := &mockMessageRepository{}
+	h := hub.NewHub(repo)
+	handler := NewWebSocketHandler(h)
+
+	// Create a request with WebSocket headers but no username in JWT claims
+	req := httptest.NewRequest("GET", "/ws", nil)
+	req.Header.Set("Connection", "upgrade")
+	req.Header.Set("Upgrade", "websocket")
+	req.Header.Set("Sec-WebSocket-Version", "13")
+	req.Header.Set("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+
+	// Add empty JWT context (no username)
+	claims := map[string]interface{}{}
+	ctx := context.WithValue(req.Context(), appContext.UserClaimsKey, claims)
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+
+	handler.ServeWS(w, req)
+
+	// Should return bad request for missing username
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	expectedBody := "username is required"
+	if !strings.Contains(w.Body.String(), expectedBody) {
+		t.Errorf("expected body to contain %q, got %q", expectedBody, w.Body.String())
+	}
+}
+
+func TestWebSocketHandler_ServeWS_NoJWTContext(t *testing.T) {
+	repo := &mockMessageRepository{}
+	h := hub.NewHub(repo)
+	handler := NewWebSocketHandler(h)
+
+	// Create a request with WebSocket headers but no JWT context at all
+	req := httptest.NewRequest("GET", "/ws", nil)
+	req.Header.Set("Connection", "upgrade")
+	req.Header.Set("Upgrade", "websocket")
+	req.Header.Set("Sec-WebSocket-Version", "13")
+	req.Header.Set("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+
+	// No JWT context added
+
+	w := httptest.NewRecorder()
+
+	handler.ServeWS(w, req)
+
+	// Should return bad request for missing username
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	expectedBody := "username is required"
+	if !strings.Contains(w.Body.String(), expectedBody) {
+		t.Errorf("expected body to contain %q, got %q", expectedBody, w.Body.String())
+	}
+}
+
+func TestWebSocketHandler_ServeWS_InvalidJWTClaims(t *testing.T) {
+	repo := &mockMessageRepository{}
+	h := hub.NewHub(repo)
+	handler := NewWebSocketHandler(h)
+
+	// Create a request with WebSocket headers
+	req := httptest.NewRequest("GET", "/ws", nil)
+	req.Header.Set("Connection", "upgrade")
+	req.Header.Set("Upgrade", "websocket")
+	req.Header.Set("Sec-WebSocket-Version", "13")
+	req.Header.Set("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+
+	// Add invalid JWT context (not a map)
+	ctx := context.WithValue(req.Context(), appContext.UserClaimsKey, "invalid")
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+
+	handler.ServeWS(w, req)
+
+	// Should return bad request for invalid claims
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	expectedBody := "username is required"
+	if !strings.Contains(w.Body.String(), expectedBody) {
+		t.Errorf("expected body to contain %q, got %q", expectedBody, w.Body.String())
 	}
 }

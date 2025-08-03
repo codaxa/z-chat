@@ -5,7 +5,7 @@ import "time"
 
 // User represents a user in the chat application.
 type User struct {
-	ID        string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()" validate:"uuid4"`
+	ID        string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Username  string    `json:"username" gorm:"type:varchar(50);uniqueIndex;not null" validate:"required,min=3,max=50,alphanum"`
 	Email     string    `json:"email" gorm:"type:varchar(255);uniqueIndex;not null" validate:"required,email"`
 	Password  string    `json:"password" gorm:"type:varchar(64);not null" validate:"required,sha256"`

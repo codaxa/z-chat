@@ -1,13 +1,11 @@
 package postgres
 
 import (
-	"errors"
-	"z-chat/internal/domain/models"
-
 	"context"
-
+	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"z-chat/internal/domain/models"
 )
 
 // UserRepository is a repository that provides user storage operations using PostgreSQL database

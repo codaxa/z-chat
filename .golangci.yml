@@ -25,6 +25,7 @@ linters:
     - nolintlint
   disable:
     - depguard
+    - gocognit
 
 
 issues:
