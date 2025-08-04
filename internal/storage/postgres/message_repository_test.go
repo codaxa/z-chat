@@ -46,6 +46,7 @@ func TestMessageRepository_CreateMessage(t *testing.T) {
 				Content:   "Hello, World!",
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
+				RoomID:    "some-room-id",
 			},
 			mockErr: nil,
 			wantErr: false,
@@ -59,6 +60,7 @@ func TestMessageRepository_CreateMessage(t *testing.T) {
 				Content:   "Hello, World!",
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
+				RoomID:    "some-room-id",
 			},
 			mockErr: errors.New("database connection failed"),
 			wantErr: true,
@@ -73,8 +75,8 @@ func TestMessageRepository_CreateMessage(t *testing.T) {
 			}
 			defer mock.Close()
 
-			expectation := mock.ExpectExec("INSERT INTO messages \\(sender, receiver, content, created_at, updated_at\\) VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5\\)").
-				WithArgs(tt.message.Sender, tt.message.Receiver, tt.message.Content, tt.message.CreatedAt, tt.message.UpdatedAt)
+			expectation := mock.ExpectExec("INSERT INTO messages \\(sender, receiver, content, created_at, updated_at, room_id\\) VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6\\)").
+				WithArgs(tt.message.Sender, tt.message.Receiver, tt.message.Content, tt.message.CreatedAt, tt.message.UpdatedAt, tt.message.RoomID)
 
 			if tt.mockErr != nil {
 				expectation.WillReturnError(tt.mockErr)
@@ -230,14 +232,15 @@ func BenchmarkMessageRepository_CreateMessage(b *testing.B) {
 		Content:   "Benchmark message",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+		RoomID:    "some-room-id",
 	}
 
 	repo := NewMessageRepository(mock)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		mock.ExpectExec("INSERT INTO messages \\(sender, receiver, content, created_at, updated_at\\) VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5\\)").
-			WithArgs(message.Sender, message.Receiver, message.Content, message.CreatedAt, message.UpdatedAt).
+		mock.ExpectExec("INSERT INTO messages \\(sender, receiver, content, created_at, updated_at, room_id\\) VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6\\)").
+			WithArgs(message.Sender, message.Receiver, message.Content, message.CreatedAt, message.UpdatedAt, message.RoomID).
 			WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 		_ = repo.CreateMessage(context.Background(), message)
