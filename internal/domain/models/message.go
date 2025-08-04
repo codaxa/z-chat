@@ -11,6 +11,7 @@ type Message struct {
 	Content   string    `json:"content" gorm:"type:text;not null" validate:"required,min=1,max=1000"`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime;default:now();index"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime;default:now()"`
+	RoomID    string    `json:"room_id" gorm:"type:varchar(255);index"`
 }
 
 // TableName returns the table name for the Message model

@@ -18,6 +18,7 @@ type Hub struct {
 	Unregister chan *Client
 	mu         sync.RWMutex
 	repo       repository.MessageRepository
+	roomID     string
 }
 
 // ClientCount returns the current number of clients connected to the hub.p.
@@ -33,13 +34,14 @@ func (h *Hub) Clients() {
 }
 
 // NewHub returns a new Hub instance with initialized channels and an empty set of clients.
-func NewHub(repo repository.MessageRepository) *Hub {
+func NewHub(repo repository.MessageRepository, roomID string) *Hub {
 	return &Hub{
 		broadcast:  make(chan models.Message),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
 		repo:       repo,
+		roomID:     roomID,
 	}
 }
 
@@ -65,6 +67,7 @@ func (h *Hub) Run() {
 				log.Printf("error marshaling message for broadcast: %v", err)
 				continue
 			}
+			message.RoomID = h.roomID
 			if err := h.repo.CreateMessage(context.Background(), &message); err != nil {
 				log.Printf("error saving message: %v", err)
 			}

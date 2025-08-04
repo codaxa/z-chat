@@ -2,22 +2,24 @@
 package handlers
 
 import (
-	"github.com/golang-jwt/jwt"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	appContext "z-chat/internal/context"
 	"z-chat/internal/hub"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt"
+	"github.com/gorilla/websocket"
 )
 
 // WebSocketHandler handles WebSocket connections for the chat application.
 type WebSocketHandler struct {
-	hub *hub.Hub
+	HubManager *hub.Manager
 }
 
 // NewWebSocketHandler creates a new WebSocketHandler instance.
-func NewWebSocketHandler(hub *hub.Hub) *WebSocketHandler {
-	return &WebSocketHandler{hub: hub}
+func NewWebSocketHandler(hubManager *hub.Manager) *WebSocketHandler {
+	return &WebSocketHandler{HubManager: hubManager}
 }
 
 var upgrader = websocket.Upgrader{
@@ -28,6 +30,11 @@ var upgrader = websocket.Upgrader{
 
 // ServeWS handles WebSocket upgrade requests and manages client connections.
 func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
+	roomID := chi.URLParam(r, "roomID")
+	if roomID == "" {
+		http.Error(w, "roomID is required", http.StatusBadRequest)
+		return
+	}
 	var username string
 
 	if claims := r.Context().Value(appContext.UserClaimsKey); claims != nil {
@@ -80,13 +87,15 @@ func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := hub.NewClient(h.hub, conn, username)
+	roomHub := h.HubManager.GetOrCreateHub(roomID)
+
+	client := hub.NewClient(roomHub, conn, username)
 	if client == nil {
 		log.Printf("Failed to create client")
 		return
 	}
 
-	h.hub.Register <- client
+	roomHub.Register <- client
 
 	go client.WritePump()
 	go client.ReadPump()

@@ -3,8 +3,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"golang.org/x/net/context"
 	"log"
 	"net/http"
 	"z-chat/internal/config"
@@ -13,6 +11,9 @@ import (
 	"z-chat/internal/services"
 	"z-chat/internal/storage/postgres"
 	route "z-chat/internal/transport/http"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/net/context"
 )
 
 func main() {
@@ -45,11 +46,10 @@ func run() error {
 	messageRepo := postgres.NewMessageRepository(dbConn)
 
 	// Initialize chat hub
-	chatHub := hub.NewHub(messageRepo)
-	go chatHub.Run()
-
+	messageHandler := handlers.NewMessageHandler(messageRepo)
+	chatHub := hub.NewManager(messageRepo)
 	wsHandler := handlers.NewWebSocketHandler(chatHub)
-	router := route.NewRouter(wsHandler, authService)
+	router := route.NewRouter(wsHandler, messageHandler, authService)
 
 	fmt.Printf("Chat server is running on port %s\n", cfg.Port)
 

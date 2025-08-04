@@ -10,4 +10,5 @@ import (
 type MessageRepository interface {
 	CreateMessage(ctx context.Context, msg *models.Message) error
 	GetMessageByID(ctx context.Context, id string) (*models.Message, error)
+	GetMessagesByRoom(ctx context.Context, roomID string) ([]*models.Message, error)
 }
