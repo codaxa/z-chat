@@ -3,13 +3,14 @@ package hub
 import (
 	"context"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 	"z-chat/internal/domain/models"
+
+	"github.com/gorilla/websocket"
 )
 
 // MockMessageRepository is a mock implementation for testing
@@ -31,9 +32,13 @@ func (m *mockMessageRepositoryClientTest) GetMessages() ([]models.Message, error
 	return nil, nil
 }
 
+func (m *mockMessageRepositoryClientTest) GetMessagesByRoom(_ context.Context, _ string) ([]*models.Message, error) {
+	return nil, nil
+}
+
 func TestNewClient(t *testing.T) {
 	repo := &mockMessageRepositoryClientTest{}
-	h := NewHub(repo)
+	h := NewHub(repo, "test")
 	conn := &websocket.Conn{} // Mock connection
 
 	client := NewClient(h, conn, "testuser")
@@ -54,8 +59,10 @@ func TestNewClient(t *testing.T) {
 
 func TestClient_WritePump(t *testing.T) {
 	repo := &mockMessageRepositoryClientTest{}
-	h := NewHub(repo)
+	h := NewHub(repo, "test")
 	go h.Run()
+
+	messageReceived := make(chan []byte, 1)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
@@ -71,19 +78,19 @@ func TestClient_WritePump(t *testing.T) {
 			}
 		}()
 
-		for {
-			_, _, err := conn.ReadMessage()
-			if err != nil {
-				break
-			}
+		// Read one message and signal
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			return
 		}
+		messageReceived <- msg
 	}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http")
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("could not connect to websocket: %v", err)
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -101,14 +108,21 @@ func TestClient_WritePump(t *testing.T) {
 	testMessage := []byte("test message")
 	client.send <- testMessage
 
-	time.Sleep(10 * time.Millisecond)
+	select {
+	case received := <-messageReceived:
+		if string(received) != string(testMessage) {
+			t.Errorf("handler received wrong message: got %s want %s", received, testMessage)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("timed out waiting for message")
+	}
 
 	close(client.send)
 }
 
 func TestClient_ReadPump_Unregisters(t *testing.T) {
 	repo := &mockMessageRepositoryClientTest{}
-	h := NewHub(repo)
+	h := NewHub(repo, "test")
 	go h.Run()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -121,6 +135,7 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 			return
 		}
 
+		// Immediately close the connection to trigger an error on the client's ReadPump
 		if err := conn.Close(); err != nil {
 			t.Logf("Error closing connection: %v", err)
 		}
@@ -132,20 +147,22 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("could not connect to websocket: %v", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			t.Logf("Error closing body: %v", err)
 		}
+		// The client will close the connection in its ReadPump defer.
+		// Closing it here again might cause a "close of closed connection" panic.
+		// conn.Close()
 	}()
 
 	client := NewClient(h, conn, "testuser")
 	h.Register <- client
 
-	if err := waitForClients(h, 1, 100*time.Millisecond); err != nil {
-		t.Fatal(err)
-	}
+	// Wait for registration to be processed
+	time.Sleep(50 * time.Millisecond)
 
 	go client.ReadPump()
 

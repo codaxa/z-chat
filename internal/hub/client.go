@@ -3,9 +3,10 @@ package hub
 
 import (
 	"encoding/json"
-	"github.com/gorilla/websocket"
 	"log"
 	"z-chat/internal/domain/models"
+
+	"github.com/gorilla/websocket"
 )
 
 // Client represents a WebSocket client connected to the hub.
