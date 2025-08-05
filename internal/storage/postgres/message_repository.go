@@ -65,14 +65,16 @@ func (m *MessageRepository) GetMessageByID(ctx context.Context, id string) (*mod
 // Returns:
 //   - []*models.Message: A slice of message pointers for the specified room
 //   - error: Any error encountered during the query execution
-func (m *MessageRepository) GetMessagesByRoom(ctx context.Context, roomID string) ([]*models.Message, error) {
+func (m *MessageRepository) GetMessagesByRoom(ctx context.Context, roomID string, limit, offset int) ([]*models.Message, error) {
 	query := `
-	SELECT id, sender, receiver, content, created_at, updated_at, room_id
-	FROM messages
-	WHERE room_id = $1
-	ORDER BY created_at ASC
+		SELECT id, sender, receiver, content, created_at, updated_at, room_id
+		FROM messages
+		WHERE room_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
 	`
-	rows, err := m.db.Query(ctx, query, roomID)
+
+	rows, err := m.db.Query(ctx, query, roomID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -80,19 +82,14 @@ func (m *MessageRepository) GetMessagesByRoom(ctx context.Context, roomID string
 
 	var messages []*models.Message
 	for rows.Next() {
-		var msg models.Message
+		msg := new(models.Message)
 		if err := rows.Scan(
-			&msg.ID,
-			&msg.Sender,
-			&msg.Receiver,
-			&msg.Content,
-			&msg.CreatedAt,
-			&msg.UpdatedAt,
-			&msg.RoomID,
+			&msg.ID, &msg.Sender, &msg.Receiver, &msg.Content,
+			&msg.CreatedAt, &msg.UpdatedAt, &msg.RoomID,
 		); err != nil {
 			return nil, err
 		}
-		messages = append(messages, &msg)
+		messages = append(messages, msg)
 	}
 
 	return messages, nil

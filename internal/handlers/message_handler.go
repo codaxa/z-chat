@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"z-chat/internal/domain/repository"
 
 	"github.com/go-chi/chi/v5"
@@ -30,9 +31,22 @@ func (h *MessageHandler) GetMessagesByRoom(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "roomID is required", http.StatusBadRequest)
 		return
 	}
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page, err := strconv.Atoi(pageStr)
+
+	if err != nil || page < 1 {
+		page = 1
+	}
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
 
 	// Retrieve messages from repository
-	messages, err := h.repo.GetMessagesByRoom(r.Context(), roomID)
+	messages, err := h.repo.GetMessagesByRoom(r.Context(), roomID, limit, offset)
 	if err != nil {
 		http.Error(w, "failed to get messages: "+err.Error(), http.StatusInternalServerError)
 		return

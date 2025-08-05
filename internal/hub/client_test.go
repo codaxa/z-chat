@@ -32,8 +32,8 @@ func (m *mockMessageRepositoryClientTest) GetMessages() ([]models.Message, error
 	return nil, nil
 }
 
-func (m *mockMessageRepositoryClientTest) GetMessagesByRoom(_ context.Context, _ string) ([]*models.Message, error) {
-	return nil, nil
+func (m *mockMessageRepositoryClientTest) GetMessagesByRoom(_ context.Context, _ string, _ int, _ int) ([]*models.Message, error) {
+	return []*models.Message{}, nil
 }
 
 func TestNewClient(t *testing.T) {
