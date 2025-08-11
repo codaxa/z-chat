@@ -74,7 +74,6 @@ func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	roomHub.Register <- client
 
-
 	go client.WritePump()
 	go client.ReadPump()
 }
@@ -164,4 +163,3 @@ func (h *WebSocketHandler) sendRecentMessages(ctx context.Context, client *hub.C
 		}
 	}
 }
-

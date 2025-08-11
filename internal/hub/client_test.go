@@ -3,13 +3,13 @@ package hub
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 	"z-chat/internal/domain/models"
-	"github.com/gorilla/websocket"
 )
 
 // MockMessageRepository is a mock implementation for testing
@@ -182,7 +182,6 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 		if err := conn.Close(); err != nil {
 			t.Logf("Error closing connection: %v", err)
 		}
-
 
 	}))
 	defer server.Close()

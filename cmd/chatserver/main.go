@@ -13,7 +13,6 @@ import (
 	"z-chat/internal/services"
 	"z-chat/internal/storage/postgres"
 	route "z-chat/internal/transport/http"
-
 )
 
 // main initializes and starts the chat server, setting up HTTP endpoints and launching the chat hub.

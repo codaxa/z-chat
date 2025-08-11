@@ -45,7 +45,6 @@ func NewHub(msgRepo repository.MessageRepository, roomRepo repository.RoomReposi
 		msgRepo:    msgRepo,
 		roomRepo:   roomRepo,
 		roomID:     roomID,
-
 	}
 }
 
