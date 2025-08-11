@@ -8,16 +8,18 @@ import (
 
 // Manager manages multiple chat hubs for different rooms.
 type Manager struct {
-	hubs map[string]*Hub
-	mu   sync.RWMutex
-	repo repository.MessageRepository
+	hubs     map[string]*Hub
+	mu       sync.RWMutex
+	msgRepo  repository.MessageRepository
+	roomRepo repository.RoomRepository
 }
 
 // NewManager creates a new Manager instance.
-func NewManager(repo repository.MessageRepository) *Manager {
+func NewManager(repo repository.MessageRepository, roomRepo repository.RoomRepository) *Manager {
 	return &Manager{
-		hubs: make(map[string]*Hub),
-		repo: repo,
+		hubs:     make(map[string]*Hub),
+		msgRepo:  repo,
+		roomRepo: roomRepo,
 	}
 }
 
@@ -38,9 +40,8 @@ func (m *Manager) GetOrCreateHub(roomID string) *Hub {
 	if hub, exists := m.hubs[roomID]; exists {
 		return hub
 	}
-
 	// Create a new hub
-	hub := NewHub(m.repo, roomID)
+	hub := NewHub(m.msgRepo, m.roomRepo, roomID)
 	m.hubs[roomID] = hub
 
 	log.Printf("Creating new hub for roomID: %s", roomID)

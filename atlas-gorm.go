@@ -68,7 +68,9 @@ func main() {
 	// Auto-migrate to generate schema in temp database
 	if err := db.AutoMigrate(
 		&models.User{},
+		&models.Room{},
 		&models.Message{},
+		&models.RoomMember{},
 	); err != nil {
 		log.Fatalf("failed to auto-migrate: %v", err)
 	}

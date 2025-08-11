@@ -42,7 +42,7 @@ tasks:
   migrate-down:
     desc: "Rollback last migration"
     cmds:
-      - atlas migrate rollback --env development
+      - atlas migrate down --env development
 
   migrate-status:
     desc: "Check migration status"

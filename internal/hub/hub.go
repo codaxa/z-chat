@@ -17,7 +17,8 @@ type Hub struct {
 	Register   chan *Client
 	Unregister chan *Client
 	mu         sync.RWMutex
-	repo       repository.MessageRepository
+	msgRepo    repository.MessageRepository
+	roomRepo   repository.RoomRepository
 	roomID     string
 }
 
@@ -34,13 +35,14 @@ func (h *Hub) Clients() {
 }
 
 // NewHub returns a new Hub instance with initialized channels and an empty set of clients.
-func NewHub(repo repository.MessageRepository, roomID string) *Hub {
+func NewHub(msgRepo repository.MessageRepository, roomRepo repository.RoomRepository, roomID string) *Hub {
 	return &Hub{
 		broadcast:  make(chan models.Message),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
-		repo:       repo,
+		msgRepo:    msgRepo,
+		roomRepo:   roomRepo,
 		roomID:     roomID,
 	}
 }
@@ -68,7 +70,7 @@ func (h *Hub) Run() {
 				continue
 			}
 			message.RoomID = h.roomID
-			if err := h.repo.CreateMessage(context.Background(), &message); err != nil {
+			if err := h.msgRepo.CreateMessage(context.Background(), &message); err != nil {
 				log.Printf("error saving message: %v", err)
 			}
 			h.mu.RLock()

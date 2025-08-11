@@ -1,29 +1,25 @@
+// Package handlers provides HTTP handlers for managing chat messages.
 package handlers
 
 import (
 	"encoding/json"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 	"z-chat/internal/domain/repository"
-
-	"github.com/go-chi/chi/v5"
 )
 
 // MessageHandler manages HTTP requests related to messages in the chat application.
-// It uses a MessageRepository to interact with the message data storage layer.
 type MessageHandler struct {
 	repo repository.MessageRepository
 }
 
 // NewMessageHandler creates a new MessageHandler with the provided message repository.
-// It returns a pointer to the new MessageHandler instance.
 func NewMessageHandler(repo repository.MessageRepository) *MessageHandler {
 	return &MessageHandler{repo: repo}
 }
 
 // GetMessagesByRoom handles HTTP requests to retrieve all messages from a specific chat room.
-// It extracts the roomID from the URL parameters, fetches messages using the repository,
-// and returns them as a JSON response.
 func (h *MessageHandler) GetMessagesByRoom(w http.ResponseWriter, r *http.Request) {
 	// Extract roomID from URL parameters
 	roomID := chi.URLParam(r, "roomID")
