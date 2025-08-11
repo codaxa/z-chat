@@ -56,7 +56,6 @@ func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to access room", http.StatusInternalServerError)
 		return
 	}
-
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
@@ -65,6 +64,7 @@ func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	roomHub := h.HubManager.GetOrCreateHub(roomID)
 	client := hub.NewClient(roomHub, conn, username)
+
 	if client == nil {
 		log.Printf("Failed to create client")
 		return
@@ -73,6 +73,7 @@ func (h *WebSocketHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	h.sendRecentMessages(r.Context(), client, roomID)
 
 	roomHub.Register <- client
+
 
 	go client.WritePump()
 	go client.ReadPump()
@@ -163,3 +164,4 @@ func (h *WebSocketHandler) sendRecentMessages(ctx context.Context, client *hub.C
 		}
 	}
 }
+

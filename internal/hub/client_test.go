@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 	"z-chat/internal/domain/models"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -77,6 +76,7 @@ func TestNewClient(t *testing.T) {
 	msgRepo := &mockMessageRepositoryClientTest{}
 	roomRepo := &mockRoomRepositoryClientTest{}
 	h := NewHub(msgRepo, roomRepo, "test")
+
 	conn := &websocket.Conn{} // Mock connection
 
 	client := NewClient(h, conn, "testuser")
@@ -123,6 +123,7 @@ func TestClient_WritePump(t *testing.T) {
 			return
 		}
 		messageReceived <- msg
+
 	}))
 	defer server.Close()
 
@@ -130,6 +131,7 @@ func TestClient_WritePump(t *testing.T) {
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		t.Fatalf("could not connect to websocket: %v", err)
+
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -163,6 +165,7 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 	msgRepo := &mockMessageRepositoryClientTest{}
 	roomRepo := &mockRoomRepositoryClientTest{}
 	h := NewHub(msgRepo, roomRepo, "test")
+
 	go h.Run()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -179,6 +182,7 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 		if err := conn.Close(); err != nil {
 			t.Logf("Error closing connection: %v", err)
 		}
+
 
 	}))
 	defer server.Close()

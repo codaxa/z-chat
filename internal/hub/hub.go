@@ -36,6 +36,7 @@ func (h *Hub) Clients() {
 
 // NewHub returns a new Hub instance with initialized channels and an empty set of clients.
 func NewHub(msgRepo repository.MessageRepository, roomRepo repository.RoomRepository, roomID string) *Hub {
+
 	return &Hub{
 		broadcast:  make(chan models.Message),
 		Register:   make(chan *Client),
@@ -44,6 +45,7 @@ func NewHub(msgRepo repository.MessageRepository, roomRepo repository.RoomReposi
 		msgRepo:    msgRepo,
 		roomRepo:   roomRepo,
 		roomID:     roomID,
+
 	}
 }
 
@@ -58,12 +60,14 @@ func (h *Hub) Run() {
 
 		case client := <-h.Unregister:
 			h.mu.Lock()
+
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
 			h.mu.Unlock()
 		case message := <-h.broadcast:
+
 			messageBytes, err := json.Marshal(message)
 			if err != nil {
 				log.Printf("error marshaling message for broadcast: %v", err)

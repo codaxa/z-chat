@@ -62,7 +62,6 @@ func (c *Client) ReadPump() {
 			log.Printf("invalid message: %v", err)
 			continue
 		}
-
 		c.hub.broadcast <- message
 	}
 }

@@ -13,8 +13,10 @@ import (
 	"z-chat/internal/services"
 	"z-chat/internal/storage/postgres"
 	route "z-chat/internal/transport/http"
+
 )
 
+// main initializes and starts the chat server, setting up HTTP endpoints and launching the chat hub.
 func main() {
 	if err := run(); err != nil {
 		log.Fatalf("Error: %v", err)
@@ -55,4 +57,5 @@ func run() error {
 	fmt.Printf("Chat server is running on port %s\n", cfg.Port)
 
 	return http.ListenAndServe(cfg.Port, router)
+
 }

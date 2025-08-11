@@ -25,6 +25,7 @@ func TestHealthHandler(t *testing.T) {
 
 	expectedBody := `{"status":"healthy"}`
 	body := strings.TrimSpace(w.Body.String())
+
 	if body != expectedBody {
 		t.Errorf("expected body %s, got %s", expectedBody, body)
 	}
@@ -43,6 +44,7 @@ func TestHealthHandler_MethodNotAllowed(t *testing.T) {
 
 	expectedBody := "Method not allowed"
 	body := strings.TrimSpace(w.Body.String())
+
 	if body != expectedBody {
 		t.Errorf("expected body %s, got %s", expectedBody, body)
 	}

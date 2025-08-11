@@ -19,6 +19,7 @@ func (Message) TableName() string {
 	return "messages"
 }
 
+
 // Validate checks the Message fields for validity.
 func (m *Message) Validate() error {
 	return validate.Struct(m)
