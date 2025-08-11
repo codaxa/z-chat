@@ -24,21 +24,59 @@ func (m *mockMessageRepositoryClientTest) GetMessageByID(_ context.Context, _ st
 	return nil, nil
 }
 
-func (m *mockMessageRepositoryClientTest) SaveMessage(_ models.Message) error {
-	return nil
-}
-
-func (m *mockMessageRepositoryClientTest) GetMessages() ([]models.Message, error) {
-	return nil, nil
-}
-
 func (m *mockMessageRepositoryClientTest) GetMessagesByRoom(_ context.Context, _ string, _ int, _ int) ([]*models.Message, error) {
 	return []*models.Message{}, nil
 }
 
+type mockRoomRepositoryClientTest struct{}
+
+func (m *mockRoomRepositoryClientTest) GetRoomByID(_ context.Context, _ string) (*models.Room, error) {
+	return &models.Room{ID: "test-room", Name: "Test Room"}, nil
+}
+
+func (m *mockRoomRepositoryClientTest) CreateRoom(_ context.Context, _ *models.Room) error {
+	return nil
+}
+
+func (m *mockRoomRepositoryClientTest) GetRooms(_ context.Context, _ int, _ int) ([]*models.Room, error) {
+	return []*models.Room{}, nil
+}
+
+func (m *mockRoomRepositoryClientTest) GetRoomAdmins(_ context.Context, _ string) ([]*models.User, error) {
+	return []*models.User{}, nil
+}
+func (m *mockRoomRepositoryClientTest) AddRoomAdmin(_ context.Context, _ string, _ string) error {
+	return nil
+}
+func (m *mockRoomRepositoryClientTest) RemoveRoomAdmin(_ context.Context, _ string, _ string) error {
+	return nil
+}
+
+func (m *mockRoomRepositoryClientTest) DeleteRoom(_ context.Context, _ string) error {
+	return nil
+}
+func (m *mockRoomRepositoryClientTest) GetRoomMembers(_ context.Context, _ string) ([]*models.User, error) {
+	return []*models.User{}, nil
+}
+func (m *mockRoomRepositoryClientTest) AddRoomMember(_ context.Context, _ string, _ string) error {
+	return nil
+}
+func (m *mockRoomRepositoryClientTest) RemoveRoomMember(_ context.Context, _ string, _ string) error {
+	return nil
+}
+func (m *mockRoomRepositoryClientTest) IsRoomMember(_ context.Context, _ string, _ string) (bool, error) {
+	return false, nil
+}
+func (m *mockRoomRepositoryClientTest) IsRoomAdmin(_ context.Context, _ string, _ string) (bool, error) {
+	return false, nil
+}
+func (m *mockRoomRepositoryClientTest) GetUserRooms(_ context.Context, _ string) ([]*models.Room, error) {
+	return []*models.Room{}, nil
+}
 func TestNewClient(t *testing.T) {
-	repo := &mockMessageRepositoryClientTest{}
-	h := NewHub(repo, "test")
+	msgRepo := &mockMessageRepositoryClientTest{}
+	roomRepo := &mockRoomRepositoryClientTest{}
+	h := NewHub(msgRepo, roomRepo, "test")
 	conn := &websocket.Conn{} // Mock connection
 
 	client := NewClient(h, conn, "testuser")
@@ -58,8 +96,9 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestClient_WritePump(t *testing.T) {
-	repo := &mockMessageRepositoryClientTest{}
-	h := NewHub(repo, "test")
+	msgRepo := &mockMessageRepositoryClientTest{}
+	roomRepo := &mockRoomRepositoryClientTest{}
+	h := NewHub(msgRepo, roomRepo, "test")
 	go h.Run()
 
 	messageReceived := make(chan []byte, 1)
@@ -121,8 +160,9 @@ func TestClient_WritePump(t *testing.T) {
 }
 
 func TestClient_ReadPump_Unregisters(t *testing.T) {
-	repo := &mockMessageRepositoryClientTest{}
-	h := NewHub(repo, "test")
+	msgRepo := &mockMessageRepositoryClientTest{}
+	roomRepo := &mockRoomRepositoryClientTest{}
+	h := NewHub(msgRepo, roomRepo, "test")
 	go h.Run()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -153,9 +193,6 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 		if err := resp.Body.Close(); err != nil {
 			t.Logf("Error closing body: %v", err)
 		}
-		// The client will close the connection in its ReadPump defer.
-		// Closing it here again might cause a "close of closed connection" panic.
-		// conn.Close()
 	}()
 
 	client := NewClient(h, conn, "testuser")

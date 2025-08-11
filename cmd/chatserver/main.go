@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/net/context"
 	"log"
 	"net/http"
 	"z-chat/internal/config"
@@ -11,9 +13,6 @@ import (
 	"z-chat/internal/services"
 	"z-chat/internal/storage/postgres"
 	route "z-chat/internal/transport/http"
-
-	"github.com/jackc/pgx/v5/pgxpool"
-	"golang.org/x/net/context"
 )
 
 func main() {
@@ -38,18 +37,20 @@ func run() error {
 	defer dbConn.Close()
 
 	// Initialize repositories
-	userRepository := postgres.NewUserRepository(dbConn)
+	userRepo := postgres.NewUserRepository(dbConn)
+	messageRepo := postgres.NewMessageRepository(dbConn)
+	roomRepo := postgres.NewRoomRepository(dbConn)
 
 	// Initialize services
-	authService := services.NewAuthService(userRepository, cfg.JWTSecret, cfg.TokenDuration)
-
-	messageRepo := postgres.NewMessageRepository(dbConn)
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret, cfg.TokenDuration)
 
 	// Initialize chat hub
 	messageHandler := handlers.NewMessageHandler(messageRepo)
-	chatHub := hub.NewManager(messageRepo)
-	wsHandler := handlers.NewWebSocketHandler(chatHub)
-	router := route.NewRouter(wsHandler, messageHandler, authService)
+	roomHandler := handlers.NewRoomHandler(roomRepo)
+
+	chatHub := hub.NewManager(messageRepo, roomRepo)
+	wsHandler := handlers.NewWebSocketHandler(chatHub, messageRepo, roomRepo, userRepo)
+	router := route.NewRouter(wsHandler, messageHandler, roomHandler, authService)
 
 	fmt.Printf("Chat server is running on port %s\n", cfg.Port)
 

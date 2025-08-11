@@ -2,11 +2,11 @@
 package hub
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/gorilla/websocket"
 	"log"
 	"z-chat/internal/domain/models"
-
-	"github.com/gorilla/websocket"
 )
 
 // Client represents a WebSocket client connected to the hub.
@@ -37,10 +37,10 @@ func (c *Client) ReadPump() {
 	}()
 	for {
 		_, messageBytes, err := c.conn.ReadMessage()
-
 		if err != nil {
 			break
 		}
+
 		var message models.Message
 		if err := json.Unmarshal(messageBytes, &message); err != nil {
 			log.Printf("error parsing message: %v", err)
@@ -48,6 +48,16 @@ func (c *Client) ReadPump() {
 		}
 
 		message.Sender = c.username
+		message.RoomID = c.hub.roomID
+
+		// Populate Room field - you need access to room repository
+		if c.hub.roomRepo != nil {
+			room, err := c.hub.roomRepo.GetRoomByID(context.Background(), c.hub.roomID)
+			if err == nil && room != nil {
+				message.Room = *room
+			}
+		}
+
 		if err := message.Validate(); err != nil {
 			log.Printf("invalid message: %v", err)
 			continue
@@ -70,4 +80,19 @@ func (c *Client) WritePump() {
 			break
 		}
 	}
+}
+
+// SendMessage method to send messages
+func (c *Client) SendMessage(message []byte) bool {
+	select {
+	case c.send <- message:
+		return true
+	default:
+		return false
+	}
+}
+
+// Username getter methods
+func (c *Client) Username() string {
+	return c.username
 }

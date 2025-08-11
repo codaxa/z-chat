@@ -42,7 +42,6 @@ func TestMessageRepository_CreateMessage(t *testing.T) {
 			message: &models.Message{
 				ID:        "550e8400-e29b-41d4-a716-446655440000",
 				Sender:    "user1",
-				Receiver:  "user2",
 				Content:   "Hello, World!",
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
@@ -56,7 +55,6 @@ func TestMessageRepository_CreateMessage(t *testing.T) {
 			message: &models.Message{
 				ID:        "550e8400-e29b-41d4-a716-446655440000",
 				Sender:    "user1",
-				Receiver:  "user2",
 				Content:   "Hello, World!",
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
@@ -75,8 +73,8 @@ func TestMessageRepository_CreateMessage(t *testing.T) {
 			}
 			defer mock.Close()
 
-			expectation := mock.ExpectExec("INSERT INTO messages \\(sender, receiver, content, created_at, updated_at, room_id\\) VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6\\)").
-				WithArgs(tt.message.Sender, tt.message.Receiver, tt.message.Content, tt.message.CreatedAt, tt.message.UpdatedAt, tt.message.RoomID)
+			expectation := mock.ExpectExec("INSERT INTO messages \\(sender, content, created_at, updated_at, room_id\\) VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5\\)").
+				WithArgs(tt.message.Sender, tt.message.Content, tt.message.CreatedAt, tt.message.UpdatedAt, tt.message.RoomID)
 
 			if tt.mockErr != nil {
 				expectation.WillReturnError(tt.mockErr)
@@ -133,16 +131,17 @@ func TestMessageRepository_GetMessageByID(t *testing.T) {
 		{
 			name:      "successful retrieval",
 			messageID: "550e8400-e29b-41d4-a716-446655440000",
-			mockRows: pgxmock.NewRows([]string{"id", "sender", "receiver", "content", "created_at", "updated_at"}).
-				AddRow("550e8400-e29b-41d4-a716-446655440000", "user1", "user2", "Hello", testTime, testTime),
+			// Fix: Match the SELECT query order: id, sender, content, created_at, updated_at, room_id
+			mockRows: pgxmock.NewRows([]string{"id", "sender", "content", "created_at", "updated_at", "room_id"}).
+				AddRow("550e8400-e29b-41d4-a716-446655440000", "user1", "Hello", testTime, testTime, "room-123"),
 			mockErr: nil,
 			expected: &models.Message{
 				ID:        "550e8400-e29b-41d4-a716-446655440000",
 				Sender:    "user1",
-				Receiver:  "user2",
 				Content:   "Hello",
 				CreatedAt: testTime,
 				UpdatedAt: testTime,
+				RoomID:    "room-123", // Add this
 			},
 			wantErr: false,
 		},
@@ -181,7 +180,8 @@ func TestMessageRepository_GetMessageByID(t *testing.T) {
 			case tt.mockRows != nil:
 				expectation.WillReturnRows(tt.mockRows)
 			default:
-				expectation.WillReturnRows(pgxmock.NewRows([]string{"id", "sender", "receiver", "content", "created_at", "updated_at"}))
+				// Fix: Include all columns including room_id
+				expectation.WillReturnRows(pgxmock.NewRows([]string{"id", "sender", "content", "created_at", "updated_at", "room_id"}))
 			}
 
 			repo := NewMessageRepository(mock)
@@ -205,8 +205,8 @@ func TestMessageRepository_GetMessageByID(t *testing.T) {
 			if tt.expected != nil && result != nil {
 				if result.ID != tt.expected.ID ||
 					result.Sender != tt.expected.Sender ||
-					result.Receiver != tt.expected.Receiver ||
-					result.Content != tt.expected.Content {
+					result.Content != tt.expected.Content ||
+					result.RoomID != tt.expected.RoomID { // Add this check
 					t.Errorf("GetMessageByID() got %v, want %v", result, tt.expected)
 				}
 			}
@@ -228,7 +228,6 @@ func BenchmarkMessageRepository_CreateMessage(b *testing.B) {
 	message := &models.Message{
 		ID:        "550e8400-e29b-41d4-a716-446655440000",
 		Sender:    "user1",
-		Receiver:  "user2",
 		Content:   "Benchmark message",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -239,8 +238,8 @@ func BenchmarkMessageRepository_CreateMessage(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		mock.ExpectExec("INSERT INTO messages \\(sender, receiver, content, created_at, updated_at, room_id\\) VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5, \\$6\\)").
-			WithArgs(message.Sender, message.Receiver, message.Content, message.CreatedAt, message.UpdatedAt, message.RoomID).
+		mock.ExpectExec("INSERT INTO messages \\(sender, content, created_at, updated_at, room_id\\) VALUES \\(\\$1, \\$2, \\$3, \\$4, \\$5\\)").
+			WithArgs(message.Sender, message.Content, message.CreatedAt, message.UpdatedAt, message.RoomID).
 			WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 		_ = repo.CreateMessage(context.Background(), message)

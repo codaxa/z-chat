@@ -8,16 +8,28 @@ import (
 	"z-chat/internal/services"
 )
 
-// Authenticate checks the request for a valid JWT token and extracts user claims.
-func Authenticate(next http.Handler) http.Handler {
+// AuthMiddleware holds the auth service dependency
+type AuthMiddleware struct {
+	authService *services.AuthService
+}
+
+// NewAuthMiddleware creates a new auth middleware with the provided auth service
+func NewAuthMiddleware(authService *services.AuthService) *AuthMiddleware {
+	return &AuthMiddleware{
+		authService: authService,
+	}
+}
+
+// Authenticate checks the request for a valid JWT token and extracts user claims
+func (am *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			http.Error(w, "Authorization header required", http.StatusUnauthorized)
 			return
 		}
-		authService := &services.AuthService{}
-		claims, err := authService.ValidateToken(authHeader)
+
+		claims, err := am.authService.ValidateToken(authHeader)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
