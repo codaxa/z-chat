@@ -1,17 +1,82 @@
 package hub
 
 import (
+	"context"
+	"fmt"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/gorilla/websocket"
+	"z-chat/internal/domain/models"
 )
 
+// MockMessageRepository is a mock implementation for testing
+type mockMessageRepositoryClientTest struct{}
+
+func (m *mockMessageRepositoryClientTest) CreateMessage(_ context.Context, _ *models.Message) error {
+	return nil
+}
+
+func (m *mockMessageRepositoryClientTest) GetMessageByID(_ context.Context, _ string) (*models.Message, error) {
+	return nil, nil
+}
+
+func (m *mockMessageRepositoryClientTest) GetMessagesByRoom(_ context.Context, _ string, _ int, _ int) ([]*models.Message, error) {
+	return []*models.Message{}, nil
+}
+
+type mockRoomRepositoryClientTest struct{}
+
+func (m *mockRoomRepositoryClientTest) GetRoomByID(_ context.Context, _ string) (*models.Room, error) {
+	return &models.Room{ID: "test-room", Name: "Test Room"}, nil
+}
+
+func (m *mockRoomRepositoryClientTest) CreateRoom(_ context.Context, _ *models.Room) error {
+	return nil
+}
+
+func (m *mockRoomRepositoryClientTest) GetRooms(_ context.Context, _ int, _ int) ([]*models.Room, error) {
+	return []*models.Room{}, nil
+}
+
+func (m *mockRoomRepositoryClientTest) GetRoomAdmins(_ context.Context, _ string) ([]*models.User, error) {
+	return []*models.User{}, nil
+}
+func (m *mockRoomRepositoryClientTest) AddRoomAdmin(_ context.Context, _ string, _ string) error {
+	return nil
+}
+func (m *mockRoomRepositoryClientTest) RemoveRoomAdmin(_ context.Context, _ string, _ string) error {
+	return nil
+}
+
+func (m *mockRoomRepositoryClientTest) DeleteRoom(_ context.Context, _ string) error {
+	return nil
+}
+func (m *mockRoomRepositoryClientTest) GetRoomMembers(_ context.Context, _ string) ([]*models.User, error) {
+	return []*models.User{}, nil
+}
+func (m *mockRoomRepositoryClientTest) AddRoomMember(_ context.Context, _ string, _ string) error {
+	return nil
+}
+func (m *mockRoomRepositoryClientTest) RemoveRoomMember(_ context.Context, _ string, _ string) error {
+	return nil
+}
+func (m *mockRoomRepositoryClientTest) IsRoomMember(_ context.Context, _ string, _ string) (bool, error) {
+	return false, nil
+}
+func (m *mockRoomRepositoryClientTest) IsRoomAdmin(_ context.Context, _ string, _ string) (bool, error) {
+	return false, nil
+}
+func (m *mockRoomRepositoryClientTest) GetUserRooms(_ context.Context, _ string) ([]*models.Room, error) {
+	return []*models.Room{}, nil
+}
 func TestNewClient(t *testing.T) {
-	h := NewHub()
+	msgRepo := &mockMessageRepositoryClientTest{}
+	roomRepo := &mockRoomRepositoryClientTest{}
+	h := NewHub(msgRepo, roomRepo, "test")
+
 	conn := &websocket.Conn{} // Mock connection
 
 	client := NewClient(h, conn, "testuser")
@@ -31,10 +96,13 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestClient_WritePump(t *testing.T) {
-	h := NewHub()
+	msgRepo := &mockMessageRepositoryClientTest{}
+	roomRepo := &mockRoomRepositoryClientTest{}
+	h := NewHub(msgRepo, roomRepo, "test")
 	go h.Run()
 
-	// Create mock WebSocket connection
+	messageReceived := make(chan []byte, 1)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{
 			CheckOrigin: func(_ *http.Request) bool { return true },
@@ -49,20 +117,21 @@ func TestClient_WritePump(t *testing.T) {
 			}
 		}()
 
-		// Keep connection alive
-		for {
-			_, _, err := conn.ReadMessage()
-			if err != nil {
-				break
-			}
+		// Read one message and signal
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			return
 		}
+		messageReceived <- msg
+
 	}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http")
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("could not connect to websocket: %v", err)
+
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -77,19 +146,26 @@ func TestClient_WritePump(t *testing.T) {
 	client := NewClient(h, conn, "testuser")
 	go client.WritePump()
 
-	// Send a message through the client
 	testMessage := []byte("test message")
 	client.send <- testMessage
 
-	// Verify message was sent (WritePump should handle it)
-	time.Sleep(10 * time.Millisecond)
+	select {
+	case received := <-messageReceived:
+		if string(received) != string(testMessage) {
+			t.Errorf("handler received wrong message: got %s want %s", received, testMessage)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("timed out waiting for message")
+	}
 
-	// Close send channel to stop WritePump
 	close(client.send)
 }
 
 func TestClient_ReadPump_Unregisters(t *testing.T) {
-	h := NewHub()
+	msgRepo := &mockMessageRepositoryClientTest{}
+	roomRepo := &mockRoomRepositoryClientTest{}
+	h := NewHub(msgRepo, roomRepo, "test")
+
 	go h.Run()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -102,9 +178,10 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 			return
 		}
 
+		// Immediately close the connection to trigger an error on the client's ReadPump
 		if err := conn.Close(); err != nil {
 			t.Logf("Error closing connection: %v", err)
-		} // Immediately close to trigger ReadPump exit
+		}
 
 	}))
 	defer server.Close()
@@ -112,27 +189,36 @@ func TestClient_ReadPump_Unregisters(t *testing.T) {
 	url := "ws" + strings.TrimPrefix(server.URL, "http")
 
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
-	if err := resp.Body.Close(); err != nil {
-		t.Fatal(err)
-	}
-
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("could not connect to websocket: %v", err)
 	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Logf("Error closing body: %v", err)
+		}
+	}()
 
 	client := NewClient(h, conn, "testuser")
 	h.Register <- client
 
-	// Wait for registration
-	if err := waitForClients(h, 1, 100*time.Millisecond); err != nil {
-		t.Fatal(err)
-	}
+	// Wait for registration to be processed
+	time.Sleep(50 * time.Millisecond)
 
-	// ReadPump should unregister client when connection closes
 	go client.ReadPump()
 
-	// Wait for unregistration
 	if err := waitForClients(h, 0, 100*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// Helper function to wait for expected number of clients
+func waitForClients(h *Hub, expected int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if len(h.clients) == expected {
+			return nil
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return fmt.Errorf("timed out waiting for %d clients, got %d", expected, len(h.clients))
 }

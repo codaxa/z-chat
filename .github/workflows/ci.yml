@@ -9,6 +9,11 @@ on:
       - dev
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,9 +39,11 @@ jobs:
         with:
           version: latest
 
-      # Run unit tests
+      # Run unit tests with improved output
       - name: Run unit tests
-        run: go test ./... -v
+        run: |
+          go test ./... -v
+
 
       # Install staticcheck
       - name: Install staticcheck
